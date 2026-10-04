@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multivibrateur astable avec porte CD4093</title>
+<style>
+  :root {
+    --bg: #12151a;
+    --card: #1b1f26;
+    --border: #2a2f38;
+    --text: #eae8e1;
+    --text-secondary: #93918a;
+    --accent-vout: #F2A623;
+    --accent-vc: #4FD1AE;
+    --scope-bg: #0a0d0a;
+    --scope-grid: rgba(79, 209, 174, 0.22);
+    --scope-grid-major: rgba(79, 209, 174, 0.5);
+    --radius: 10px;
+    --comp-ic: #7C9EF0;
+    --comp-ic-fill: rgba(124, 158, 240, 0.14);
+    --comp-r: #F2A623;
+    --comp-r-fill: rgba(242, 166, 35, 0.16);
+    --comp-c: #4FD1AE;
+    --comp-c-fill: rgba(79, 209, 174, 0.16);
+    --wire: #8a8880;
+  }
+  * { box-sizing: border-box; }
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.45rem 0.9rem;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-bottom: 1.25rem;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .btn-back:hover {
+    background: var(--comp-ic-fill);
+    color: var(--comp-ic);
+    border-color: var(--comp-ic);
+  }
+  .nav-select-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+  }
+  .nav-select-bar label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .nav-select-bar select {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.45rem 0.7rem;
+    font-size: 13px;
+    min-width: 260px;
+    cursor: pointer;
+  }
+  .nav-select-bar select:focus { outline: 1px solid var(--comp-ic); }
+  body {
+    margin: 0;
+    padding: 2rem 1rem 4rem;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  .row { display: grid; grid-template-columns: 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+  @media (min-width: 760px) { .row { grid-template-columns: 2fr 1fr; } }
+  .row > .card { margin-bottom: 0; }
+  .schema-wrap { max-width: 460px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  p.sub { color: var(--text-secondary); margin: 0 0 1rem; font-size: 14px; }
+  
+  .btn-toggle {
+    background: rgba(124, 158, 240, 0.15);
+    color: var(--comp-ic);
+    border: 1px solid var(--comp-ic);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-toggle:hover {
+    background: var(--comp-ic);
+    color: var(--bg);
+  }
+
+  #theoryCard {
+    display: none;
+    margin-bottom: 1.25rem;
+  }
+  #theoryCard h3 {
+    font-size: 15px;
+    color: var(--accent-vout);
+    margin: 1.2rem 0 0.4rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.2rem;
+  }
+  #theoryCard h3:first-of-type {
+    margin-top: 0;
+  }
+  #theoryCard ul {
+    margin: 0 0 1rem;
+    padding-left: 1.2rem;
+  }
+  #theoryCard li {
+    margin-bottom: 0.4rem;
+  }
+  .formula {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 15px;
+    color: var(--accent-vc);
+    margin: 0.8rem 0;
+  }
+  .theory-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.8rem;
+    font-size: 14px;
+  }
+  .theory-table th, .theory-table td {
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.8rem;
+    text-align: left;
+  }
+  .theory-table th {
+    background: var(--bg);
+    color: var(--text-secondary);
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .card h2 { font-size: 15px; font-weight: 600; margin: 0 0 1rem; }
+  svg text { font-family: inherit; fill: var(--text); }
+  svg .ts { font-size: 12px; fill: var(--text-secondary); }
+  svg .th { font-size: 14px; font-weight: 600; }
+  .controls { display: grid; grid-template-columns: 1fr; gap: 14px 28px; }
+  label { font-size: 13px; color: var(--text-secondary); display: flex; justify-content: space-between; margin-bottom: 4px; }
+  label span.val { color: var(--text); font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: var(--accent-vc); }
+  .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (min-width: 500px) { .metrics { grid-template-columns: repeat(4, 1fr); } }
+  .metric { background: var(--bg); border-radius: 8px; padding: 0.75rem 1rem; }
+  .metric p.label { font-size: 12px; color: var(--text-secondary); margin: 0 0 4px; }
+  .metric p.value { font-size: 18px; font-weight: 600; margin: 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; align-items: center; }
+  .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .sens { display: flex; gap: 18px; font-size: 13px; color: var(--text-secondary); }
+  .sens b { color: var(--text); font-weight: 600; }
+  .scope-box { background: var(--scope-bg); border-radius: 8px; padding: 10px; border: 1px solid var(--border); }
+  footer { text-align: center; font-size: 12px; color: var(--text-secondary); margin-top: 2rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="btn-back" href="index.html">&larr; Retour à l'accueil</a>
+
+  <div class="nav-select-bar">
+    <label for="pageSelect">Aller vers :</label>
+    <select id="pageSelect" onchange="if(this.value) window.location.href=this.value;">
+      <option value="" selected disabled>— Choisir un multivibrateur —</option>
+      <option value="multivibrateur_astable_Aop.html">Amplificateur opérationnel (AOP)</option>
+      <option value="multivibrateur_astable_cmos_4093.html">Porte CMOS CD4093 (Trigger de Schmitt) — page actuelle</option>
+      <option value="multivibrateur_astable_cd4011.html">Porte logique CD4011</option>
+    </select>
+  </div>
+
+  <h1>Multivibrateur astable avec porte CD4093 (Trigger de Schmitt)</h1>
+  <p class="sub">Simulation interactive : schéma du montage, oscilloscope et paramètres réglables.</p>
+
+  <div class="card">
+    <h2>Schéma du montage</h2>
+    <div class="schema-wrap">
+    <svg width="100%" viewBox="0 0 680 320" role="img" aria-label="Schéma multivibrateur CD4093">
+      <!-- Symbole Porte NAND Schmitt Trigger -->
+      <path d="M260,100 L320,100 C360,100 390,120 390,160 C390,200 360,220 320,220 L260,220 Z" fill="var(--comp-ic-fill)" stroke="var(--comp-ic)" stroke-width="2"/>
+      <circle cx="398" cy="160" r="7" fill="var(--bg)" stroke="var(--comp-ic)" stroke-width="2"/>
+      <path d="M 310,150 L 325,150 L 318,170 L 333,170" fill="none" stroke="var(--comp-ic)" stroke-width="2"/>
+
+      <!-- Entrées reliées -->
+      <line x1="220" y1="130" x2="260" y2="130" stroke="var(--wire)" stroke-width="1.5"/>
+      <line x1="220" y1="190" x2="260" y2="190" stroke="var(--wire)" stroke-width="1.5"/>
+      <line x1="220" y1="130" x2="220" y2="190" stroke="var(--wire)" stroke-width="1.5"/>
+      <circle cx="220" cy="160" r="3" fill="var(--wire)"/>
+
+      <line x1="160" y1="160" x2="220" y2="160" stroke="var(--wire)" stroke-width="1.5"/>
+      <circle cx="160" cy="160" r="3" fill="var(--wire)"/>
+
+      <!-- Condensateur -->
+      <line x1="160" y1="160" x2="160" y2="220" stroke="var(--wire)" stroke-width="1.5"/>
+      <line x1="140" y1="220" x2="180" y2="220" stroke="var(--comp-c)" stroke-width="2.5"/>
+      <line x1="140" y1="228" x2="180" y2="228" stroke="var(--comp-c)" stroke-width="2.5"/>
+      <line x1="160" y1="228" x2="160" y2="270" stroke="var(--wire)" stroke-width="1.5"/>
+      <text class="th" x="190" y="215" fill="var(--comp-c)">C</text>
+      <text class="ts" id="cValText" x="190" y="235" fill="var(--comp-c)">100 nF</text>
+      <!-- Masse -->
+      <line x1="145" y1="270" x2="175" y2="270" stroke="var(--wire)" stroke-width="1.5"/>
+      <line x1="150" y1="275" x2="170" y2="275" stroke="var(--wire)" stroke-width="1.5"/>
+      <line x1="155" y1="280" x2="165" y2="280" stroke="var(--wire)" stroke-width="1.5"/>
+
+      <!-- Sortie -->
+      <line x1="405" y1="160" x2="520" y2="160" stroke="var(--wire)" stroke-width="1.5"/>
+      <circle cx="480" cy="160" r="3" fill="var(--wire)"/>
+      <text class="ts" x="525" y="164">Vout</text>
+
+      <!-- Feedback R -->
+      <line x1="480" y1="160" x2="480" y2="70" stroke="var(--wire)" stroke-width="1.5"/>
+      <line x1="480" y1="70" x2="350" y2="70" stroke="var(--wire)" stroke-width="1.5"/>
+      <rect x="270" y="62" width="80" height="16" rx="3" fill="var(--comp-r-fill)" stroke="var(--comp-r)" stroke-width="1.5"/>
+      <text class="th" x="310" y="55" text-anchor="middle" fill="var(--comp-r)">R</text>
+      <text class="ts" id="rValText" x="310" y="93" text-anchor="middle" fill="var(--comp-r)">10 kΩ</text>
+      <line x1="270" y1="70" x2="160" y2="70" stroke="var(--wire)" stroke-width="1.5"/>
+      <line x1="160" y1="70" x2="160" y2="160" stroke="var(--wire)" stroke-width="1.5"/>
+    </svg>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h2>Oscilloscope</h2>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--accent-vout)"></span>Vout (Sortie)</span>
+        <span><span class="dot" style="background:var(--accent-vc)"></span>Vc (Entrée)</span>
+      </div>
+      <div class="legend">
+        <span class="sens">
+          <span>Base de temps: <b id="timeDivOut">–</b>/div</span>
+          <span>Sensibilité: <b id="voltDivOut">–</b>/div</span>
+        </span>
+      </div>
+      <div class="scope-box">
+        <svg id="scopeSvg" viewBox="0 0 640 320" width="100%" height="320" style="display:block">
+          <g id="gridLines"></g>
+          <line id="centerLine" x1="0" y1="280" x2="640" y2="280" stroke="var(--scope-grid-major)" stroke-width="1"/>
+          <polyline id="voutLine" points="0,80 640,80" fill="none" stroke="var(--accent-vout)" stroke-width="2"/>
+          <polyline id="vcLine" points="0,160 640,160" fill="none" stroke="var(--accent-vc)" stroke-width="2"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Paramètres réglables</h2>
+      <div class="controls">
+        <div>
+          <label><span>Résistance R</span><span class="val" id="rOut">10 kΩ</span></label>
+          <input type="range" id="r" min="1" max="100" step="1" value="10">
+        </div>
+        <div>
+          <label><span>Capacité C</span><span class="val" id="cOut">100 nF</span></label>
+          <input type="range" id="c" min="10" max="1000" step="10" value="100">
+        </div>
+        <div>
+          <label><span>Tension d'alimentation VDD</span><span class="val" id="vddOut">5.0 V</span></label>
+          <input type="range" id="vdd" min="3" max="15" step="0.5" value="5">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Grandeurs calculées</h2>
+    <div class="metrics">
+      <div class="metric"><p class="label">Période T</p><p class="value" id="tOut">–</p></div>
+      <div class="metric"><p class="label">Fréquence N</p><p class="value" id="fOut">–</p></div>
+      <div class="metric"><p class="label">Seuil VT+ (0,75 VDD)</p><p class="value" id="vtPlusOut">–</p></div>
+      <div class="metric"><p class="label">Seuil VT- (0,50 VDD)</p><p class="value" id="vtMoinsOut">–</p></div>
+    </div>
+  </div>
+
+  <footer>Simulation pédagogique — astable à porte CD4093 CMOS (VT+ = 0,75 VDD, VT- = 0,50 VDD).</footer>
+  <button class="btn-toggle" id="toggleTheoryBtn" onclick="toggleTheory()">📘 Afficher le résumé théorique</button>
+
+  <div class="card" id="theoryCard">
+    <h2>Aperçu Théorique</h2>
+    <p>Le circuit intégré <strong>CD4093</strong> contient quatre portes NAND à Trigger de Schmitt. En reliant ses deux entrées, il agit comme un inverseur avec hystérésis défini par deux seuils de basculement :</p>
+    <ul>
+      <li><strong>Seuil haut (V<sub>T+</sub>) :</strong> ~ 0,75 · V<sub>DD</sub></li>
+      <li><strong>Seuil bas (V<sub>T-</sub>) :</strong> ~ 0,50 · V<sub>DD</sub></li>
+    </ul>
+
+    <h3>Équations Théoriques Simplifiées</h3>
+    <p>En remplaçant les seuils simplifiés dans les équations de charge et décharge :</p>
+    <div class="formula">T<sub>H</sub> = R · C · ln( (V<sub>DD</sub> - V<sub>T-</sub>) / (V<sub>DD</sub> - V<sub>T+</sub>) ) = R · C · ln(0,5 / 0,25) = R · C · ln(2) ≈ 0,69 · R · C</div>
+    <div class="formula">T<sub>B</sub> = R · C · ln( V<sub>T+</sub> / V<sub>T-</sub> ) = R · C · ln(0,75 / 0,50) = R · C · ln(1,5) ≈ 0,41 · R · C</div>
+    <p>Période globale et fréquence :</p>
+    <div class="formula">T = T<sub>H</sub> + T<sub>B</sub> ≈ 1,1 · R · C</div>
+    <div class="formula">N = 1 / T ≈ 1 / (1,1 · R · C)</div>
+
+    <h3>Récapitulatif des Caractéristiques</h3>
+    <table class="theory-table">
+      <thead>
+        <tr>
+          <th>Paramètre</th>
+          <th>Valeur Simplifiée</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Type d'IC</strong></td>
+          <td>CD4093 (CMOS Quad NAND Schmitt Trigger)</td>
+        </tr>
+        <tr>
+          <td><strong>Seuil haut (V<sub>T+</sub>)</strong></td>
+          <td>0,75 · V<sub>DD</sub> (3,75 V pour V<sub>DD</sub>=5V)</td>
+        </tr>
+        <tr>
+          <td><strong>Seuil bas (V<sub>T-</sub>)</strong></td>
+          <td>0,50 · V<sub>DD</sub> (2,50 V pour V<sub>DD</sub>=5V)</td>
+        </tr>
+        <tr>
+          <td><strong>Temps haut T<sub>H</sub></strong></td>
+          <td>0,69 · R · C</td>
+        </tr>
+        <tr>
+          <td><strong>Temps bas T<sub>B</sub></strong></td>
+          <td>0,41 · R · C</td>
+        </tr>
+        <tr>
+          <td><strong>Rapport cyclique δ</strong></td>
+          <td>δ = T<sub>H</sub> / T = 0,63 (63 %)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+
+function toggleTheory() {
+  const card = el('theoryCard');
+  const btn = el('toggleTheoryBtn');
+  if (card.style.display === 'block') {
+    card.style.display = 'none';
+    btn.textContent = '📘 Afficher le résumé théorique';
+  } else {
+    card.style.display = 'block';
+    btn.textContent = '📘 Masquer le résumé théorique';
+  }
+}
+
+function fmtTime(s) {
+  if (s < 1e-6) return (s*1e9).toFixed(1) + ' ns';
+  if (s < 1e-3) return (s*1e6).toFixed(1) + ' µs';
+  if (s < 1) return (s*1e3).toFixed(2) + ' ms';
+  return s.toFixed(2) + ' s';
+}
+function fmtFreq(f) {
+  if (f > 1e6) return (f/1e6).toFixed(2) + ' MHz';
+  if (f > 1e3) return (f/1e3).toFixed(2) + ' kHz';
+  return f.toFixed(1) + ' Hz';
+}
+function fmtVolt(v) {
+  return v.toFixed(2) + ' V';
+}
+function niceStep(raw) {
+  const exponent = Math.floor(Math.log10(raw));
+  const base = raw / Math.pow(10, exponent);
+  let niceBase;
+  if (base < 1.5) niceBase = 1;
+  else if (base < 3.5) niceBase = 2;
+  else if (base < 7.5) niceBase = 5;
+  else niceBase = 10;
+  return niceBase * Math.pow(10, exponent);
+}
+
+function buildGrid() {
+  const g = el('gridLines');
+  g.innerHTML = '';
+  for (let i = 1; i < 8; i++) {
+    const y = (i/8) * 320;
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('x1', 0); line.setAttribute('x2', 640);
+    line.setAttribute('y1', y); line.setAttribute('y2', y);
+    line.setAttribute('stroke', 'var(--scope-grid)');
+    line.setAttribute('stroke-width', '0.5');
+    g.appendChild(line);
+  }
+  for (let i = 1; i < 10; i++) {
+    const x = (i/10) * 640;
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('y1', 0); line.setAttribute('y2', 320);
+    line.setAttribute('x1', x); line.setAttribute('x2', x);
+    line.setAttribute('stroke', 'var(--scope-grid)');
+    line.setAttribute('stroke-width', '0.5');
+    g.appendChild(line);
+  }
+}
+buildGrid();
+
+function update() {
+  const R = parseFloat(el('r').value) * 1000;
+  const C = parseFloat(el('c').value) * 1e-9;
+  const Vdd = parseFloat(el('vdd').value);
+
+  el('rOut').textContent = el('r').value + ' kΩ';
+  el('cOut').textContent = el('c').value + ' nF';
+  el('vddOut').textContent = Vdd.toFixed(1) + ' V';
+
+  el('rValText').textContent = el('r').value + ' kΩ';
+  el('cValText').textContent = el('c').value + ' nF';
+
+  // Application des coefficients simplifiés
+  const VtPlus = 0.75 * Vdd;
+  const VtMoins = 0.50 * Vdd;
+
+  const tH = R * C * Math.log((Vdd - VtMoins) / (Vdd - VtPlus));
+  const tL = R * C * Math.log(VtPlus / VtMoins);
+  const T = tH + tL;
+  const N = 1 / T;
+
+  el('tOut').textContent = fmtTime(T);
+  el('fOut').textContent = fmtFreq(N);
+  el('vtPlusOut').textContent = fmtVolt(VtPlus);
+  el('vtMoinsOut').textContent = fmtVolt(VtMoins);
+
+  drawScope(R, C, Vdd, VtPlus, VtMoins, tH, tL, T);
+}
+
+function drawScope(R, C, Vdd, VtPlus, VtMoins, tH, tL, T) {
+  const rawVoltPerDiv = (Vdd * 1.2) / 8;
+  const voltDiv = niceStep(rawVoltPerDiv);
+  const vMax = voltDiv * 8;
+
+  const totalT = T * 3;
+  const rawTimePerDiv = totalT / 10;
+  const timeDiv = niceStep(rawTimePerDiv);
+  const displayT = timeDiv * 10;
+
+  el('voltDivOut').textContent = fmtVolt(voltDiv);
+  el('timeDivOut').textContent = fmtTime(timeDiv);
+
+  const yOf = v => 300 - (v / vMax) * 280;
+  const N_pts = 300;
+
+  let voutPts = [];
+  let vcPts = [];
+  for (let i = 0; i <= N_pts; i++) {
+    const t = (i/N_pts) * displayT;
+    const phase = t % T;
+    const x = (i/N_pts) * 640;
+    const vout = phase < tH ? Vdd : 0;
+    voutPts.push(x.toFixed(1) + ',' + yOf(vout).toFixed(1));
+    let vc;
+    if (phase < tH) {
+      vc = Vdd - (Vdd - VtMoins) * Math.exp(-phase / (R*C));
+    } else {
+      const p2 = phase - tH;
+      vc = VtPlus * Math.exp(-p2 / (R*C));
+    }
+    vcPts.push(x.toFixed(1) + ',' + yOf(vc).toFixed(1));
+  }
+  el('voutLine').setAttribute('points', voutPts.join(' '));
+  el('vcLine').setAttribute('points', vcPts.join(' '));
+}
+
+['r','c','vdd'].forEach(id => el(id).addEventListener('input', update));
+update();
+</script>
+</body>
+</html>

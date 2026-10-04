@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multivibrateur astable à amplificateur opérationnel</title>
+<style>
+  :root {
+    --bg: #12151a;
+    --card: #1b1f26;
+    --border: #2a2f38;
+    --text: #eae8e1;
+    --text-secondary: #93918a;
+    --accent-vout: #F2A623;
+    --accent-vc: #4FD1AE;
+    --scope-bg: #0a0d0a;
+    --scope-grid: rgba(79, 209, 174, 0.22);
+    --scope-grid-major: rgba(79, 209, 174, 0.5);
+    --radius: 10px;
+    --comp-opamp: #7C9EF0;
+    --comp-opamp-fill: rgba(124, 158, 240, 0.14);
+    --comp-r: #F2A623;
+    --comp-r-fill: rgba(242, 166, 35, 0.16);
+    --comp-c: #4FD1AE;
+    --comp-c-fill: rgba(79, 209, 174, 0.16);
+    --wire: #8a8880;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1rem 4rem;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.45rem 0.9rem;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-bottom: 1.25rem;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .btn-back:hover {
+    background: rgba(124, 158, 240, 0.15);
+    color: var(--comp-opamp);
+    border-color: var(--comp-opamp);
+  }
+  .nav-select-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+  }
+  .nav-select-bar label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .nav-select-bar select {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.45rem 0.7rem;
+    font-size: 13px;
+    min-width: 260px;
+    cursor: pointer;
+  }
+  .nav-select-bar select:focus { outline: 1px solid var(--comp-opamp); }
+  .btn-nav-go {
+    background: rgba(124, 158, 240, 0.15);
+    color: var(--comp-opamp);
+    border: 1px solid var(--comp-opamp);
+    padding: 0.45rem 0.9rem;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-nav-go:hover { background: var(--comp-opamp); color: var(--bg); }
+  .row { display: grid; grid-template-columns: 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+  @media (min-width: 760px) { .row { grid-template-columns: 2fr 1fr; } }
+  .row > .card { margin-bottom: 0; }
+  .schema-wrap { max-width: 460px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  p.sub { color: var(--text-secondary); margin: 0 0 1rem; font-size: 14px; }
+  
+  /* Style du bouton pour basculer le résumé théorique */
+  .btn-toggle {
+    background: rgba(124, 158, 240, 0.15);
+    color: var(--comp-opamp);
+    border: 1px solid var(--comp-opamp);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-toggle:hover {
+    background: var(--comp-opamp);
+    color: var(--bg);
+  }
+
+  /* Style du résumé théorique */
+  #theoryCard {
+    display: none;
+    margin-bottom: 1.25rem;
+  }
+  #theoryCard h3 {
+    font-size: 15px;
+    color: var(--accent-vout);
+    margin: 1.2rem 0 0.4rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.2rem;
+  }
+  #theoryCard h3:first-of-type {
+    margin-top: 0;
+  }
+  #theoryCard ul, #theoryCard ol {
+    margin: 0 0 1rem;
+    padding-left: 1.2rem;
+  }
+  #theoryCard li {
+    margin-bottom: 0.4rem;
+  }
+  .formula {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 15px;
+    color: var(--accent-vc);
+    margin: 0.8rem 0;
+  }
+  .theory-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.8rem;
+    font-size: 14px;
+  }
+  .theory-table th, .theory-table td {
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.8rem;
+    text-align: left;
+  }
+  .theory-table th {
+    background: var(--bg);
+    color: var(--text-secondary);
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .card h2 { font-size: 15px; font-weight: 600; margin: 0 0 1rem; }
+  svg text { font-family: inherit; fill: var(--text); }
+  svg .ts { font-size: 12px; fill: var(--text-secondary); }
+  svg .th { font-size: 14px; font-weight: 600; }
+  .controls { display: grid; grid-template-columns: 1fr; gap: 14px 28px; }
+  .controls .full { grid-column: 1 / -1; }
+  label { font-size: 13px; color: var(--text-secondary); display: flex; justify-content: space-between; margin-bottom: 4px; }
+  label span.val { color: var(--text); font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: var(--accent-vc); }
+  .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (min-width: 500px) { .metrics { grid-template-columns: repeat(4, 1fr); } }
+  .metric { background: var(--bg); border-radius: 8px; padding: 0.75rem 1rem; }
+  .metric p.label { font-size: 12px; color: var(--text-secondary); margin: 0 0 4px; }
+  .metric p.value { font-size: 18px; font-weight: 600; margin: 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; align-items: center; }
+  .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .sens { display: flex; gap: 18px; font-size: 13px; color: var(--text-secondary); }
+  .sens b { color: var(--text); font-weight: 600; }
+  .scope-box { background: var(--scope-bg); border-radius: 8px; padding: 10px; border: 1px solid var(--border); }
+  footer { text-align: center; font-size: 12px; color: var(--text-secondary); margin-top: 2rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="btn-back" href="index.html">&larr; Retour à l'accueil</a>
+
+  <div class="nav-select-bar">
+    <label for="pageSelect">Aller vers :</label>
+    <select id="pageSelect" onchange="if(this.value) window.location.href=this.value;">
+      <option value="" selected disabled>— Choisir un multivibrateur —</option>
+      <option value="multivibrateur_astable_Aop.html">Amplificateur opérationnel (AOP) — page actuelle</option>
+      <option value="multivibrateur_astable_cmos_4093.html">Porte CMOS CD4093 (Trigger de Schmitt)</option>
+      <option value="multivibrateur_astable_cd4011.html">Porte logique CD4011</option>
+    </select>
+  </div>
+
+  <h1>Multivibrateur astable à amplificateur opérationnel</h1>
+  <p class="sub">Simulation interactive : schéma du montage, oscilloscope et paramètres réglables.</p>
+
+  <div class="card">
+    <h2>Schéma du montage</h2>
+    <div class="schema-wrap">
+    <svg width="100%" viewBox="0 0 680 410" role="img" aria-label="Schéma du multivibrateur astable">
+      <path d="M240,120 L360,170 L240,220 Z" fill="var(--comp-opamp-fill)" stroke="var(--comp-opamp)" stroke-width="1.5"/>
+      <text class="th" x="258" y="135" fill="var(--comp-opamp)">-</text>
+      <text class="th" x="258" y="212" fill="var(--comp-opamp)">+</text>
+
+      <line x1="150" y1="120" x2="240" y2="120" stroke="var(--wire)" stroke-width="1.2"/>
+      <line x1="150" y1="220" x2="240" y2="220" stroke="var(--wire)" stroke-width="1.2"/>
+      <line x1="360" y1="170" x2="430" y2="170" stroke="var(--wire)" stroke-width="1.2"/>
+      <circle cx="430" cy="170" r="3" fill="var(--wire)"/>
+      <text class="ts" x="440" y="160">Vout</text>
+
+      <line x1="430" y1="170" x2="430" y2="70" stroke="var(--wire)" stroke-width="1.2"/>
+      <line x1="430" y1="70" x2="340" y2="70" stroke="var(--wire)" stroke-width="1.2"/>
+      <rect x="280" y="62" width="60" height="16" rx="3" fill="var(--comp-r-fill)" stroke="var(--comp-r)" stroke-width="1.5"/>
+      <text class="th" x="310" y="53" text-anchor="middle" fill="var(--comp-r)">R</text>
+      <text class="ts" x="310" y="92" text-anchor="middle" id="rValText" fill="var(--comp-r)">10 kΩ</text>
+      <line x1="280" y1="70" x2="150" y2="70" stroke="var(--wire)" stroke-width="1.2"/>
+      <line x1="150" y1="70" x2="150" y2="120" stroke="var(--wire)" stroke-width="1.2"/>
+      <circle cx="150" cy="120" r="3" fill="var(--wire)"/>
+
+      <line x1="150" y1="120" x2="150" y2="177" stroke="var(--wire)" stroke-width="1.2"/>
+      <line x1="130" y1="180" x2="170" y2="180" stroke="var(--comp-c)" stroke-width="2.2"/>
+      <line x1="130" y1="190" x2="170" y2="190" stroke="var(--comp-c)" stroke-width="2.2"/>
+      <line x1="150" y1="193" x2="150" y2="250" stroke="var(--wire)" stroke-width="1.2"/>
+      <text class="th" x="180" y="172" fill="var(--comp-c)">C</text>
+      <text class="ts" id="cValText" x="180" y="198" fill="var(--comp-c)">10 nF</text>
+      <line x1="130" y1="250" x2="170" y2="250" stroke="var(--wire)" stroke-width="1.2"/>
+      <line x1="136" y1="256" x2="164" y2="256" stroke="var(--wire)" stroke-width="1.2"/>
+      <line x1="143" y1="262" x2="157" y2="262" stroke="var(--wire)" stroke-width="1.2"/>
+
+      <!-- Diviseur R1 / R2 -->
+      <line x1="430" y1="170" x2="430" y2="190" stroke="var(--wire)" stroke-width="1.2"/>
+      <rect x="422" y="190" width="16" height="40" rx="3" fill="var(--comp-r-fill)" stroke="var(--comp-r)" stroke-width="1.5"/>
+      <text class="th" x="452" y="203" fill="var(--comp-r)">R1</text>
+      <text class="ts" x="452" y="220" id="r1ValText" fill="var(--comp-r)">22 kΩ</text>
+
+      <line x1="430" y1="230" x2="430" y2="255" stroke="var(--wire)" stroke-width="1.2"/>
+      <circle cx="430" cy="255" r="3" fill="var(--wire)"/>
+      <line x1="430" y1="255" x2="240" y2="255" stroke="var(--wire)" stroke-width="1.2"/>
+      <line x1="240" y1="255" x2="240" y2="220" stroke="var(--wire)" stroke-width="1.2"/>
+
+      <line x1="430" y1="255" x2="430" y2="280" stroke="var(--wire)" stroke-width="1.2"/>
+      <rect x="422" y="280" width="16" height="40" rx="3" fill="var(--comp-r-fill)" stroke="var(--comp-r)" stroke-width="1.5"/>
+      <text class="th" x="452" y="293" fill="var(--comp-r)">R2</text>
+      <text class="ts" x="452" y="310" id="r2ValText" fill="var(--comp-r)">10 kΩ</text>
+
+      <line x1="430" y1="320" x2="430" y2="335" stroke="var(--wire)" stroke-width="1.2"/>
+      <line x1="410" y1="335" x2="450" y2="335" stroke="var(--wire)" stroke-width="1.2"/>
+      <line x1="416" y1="341" x2="444" y2="341" stroke="var(--wire)" stroke-width="1.2"/>
+      <line x1="423" y1="347" x2="437" y2="347" stroke="var(--wire)" stroke-width="1.2"/>
+    </svg>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h2>Oscilloscope</h2>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--accent-vout)"></span>Vout (voie 1)</span>
+        <span><span class="dot" style="background:var(--accent-vc)"></span>Vc (voie 2)</span>
+      </div>
+      <div class="legend">
+        <span class="sens">
+          <span>Base de temps: <b id="timeDivOut">–</b>/div</span>
+          <span>Sensibilité verticale: <b id="voltDivOut">–</b>/div</span>
+        </span>
+      </div>
+      <div class="scope-box">
+        <svg id="scopeSvg" viewBox="0 0 640 320" width="100%" height="320" style="display:block">
+          <g id="gridLines"></g>
+          <line id="centerLine" x1="0" y1="160" x2="640" y2="160" stroke="var(--scope-grid-major)" stroke-width="1"/>
+          <polyline id="voutLine" points="0,80 640,80" fill="none" stroke="var(--accent-vout)" stroke-width="2"/>
+          <polyline id="vcLine" points="0,160 640,160" fill="none" stroke="var(--accent-vc)" stroke-width="2"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Paramètres réglables</h2>
+      <div class="controls">
+        <div>
+          <label><span>R1</span><span class="val" id="r1Out">22 kΩ</span></label>
+          <input type="range" id="r1" min="1" max="100" step="1" value="22">
+        </div>
+        <div>
+          <label><span>R2</span><span class="val" id="r2Out">10 kΩ</span></label>
+          <input type="range" id="r2" min="1" max="100" step="1" value="10">
+        </div>
+        <div>
+          <label><span>R (charge du condensateur)</span><span class="val" id="rOut">10 kΩ</span></label>
+          <input type="range" id="r" min="1" max="100" step="1" value="10">
+        </div>
+        <div>
+          <label><span>C</span><span class="val" id="cOut">10 nF</span></label>
+          <input type="range" id="c" min="1" max="100" step="1" value="10">
+        </div>
+        <div>
+          <label><span>Vsat (± tension de saturation)</span><span class="val" id="vsatOut">12 V</span></label>
+          <input type="range" id="vsat" min="5" max="15" step="0.5" value="12">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Grandeurs calculées</h2>
+    <div class="metrics">
+      <div class="metric"><p class="label">Période T</p><p class="value" id="tOut">–</p></div>
+      <div class="metric"><p class="label">Fréquence N</p><p class="value" id="fOut">–</p></div>
+      <div class="metric"><p class="label">β = R2/(R1+R2)</p><p class="value" id="betaOut">–</p></div>
+      <div class="metric"><p class="label">Seuils ± β·Vsat</p><p class="value" id="seuilOut">–</p></div>
+      <div class="metric"><p class="label">Rapport cyclique δ</p><p class="value">δ = t<sub>H</sub>/T = 50,0 %</p></div>
+    </div>
+  </div>
+
+  <footer>Simulation pédagogique — oscillateur de relaxation à ampli-op en boucle ouverte.</footer>
+  <button class="btn-toggle" id="toggleTheoryBtn" onclick="toggleTheory()">📘 Afficher le résumé théorique</button>
+
+  <!-- Section Résumé Théorique (Cachée par défaut) -->
+  <div class="card" id="theoryCard">
+    <h2>Aperçu Théorique</h2>
+    <p>Un <strong>multivibrateur astable</strong> est un oscillateur de relaxation autonome qui génère un signal rectangulaire (ou carré) en sortie sans nécessiter d'excitation extérieure. Il bascule continuellement entre deux états quasi-stables grâce au fonctionnement en régime de saturation de l'AOP associé à la charge et la décharge d'un condensateur.</p>
+
+    <h3>Principe de Fonctionnement</h3>
+    <p>L'AOP est monté avec une <strong>réaction positive</strong> (sur l'entrée non inverseuse V<sub>+</sub>) créant un comparateur à hystérésis (Trigger de Schmitt), et une <strong>réaction négative</strong> (sur l'entrée inverseuse V<sub>-</sub>) composée d'un réseau RC.</p>
+    <ul>
+      <li><strong>Tension de sortie V<sub>s</sub> :</strong> oscille entre deux valeurs de saturation : +V<sub>sat</sub> et -V<sub>sat</sub>.</li>
+      <li><strong>Tension de référence V<sub>+</sub> :</strong> varie selon la valeur de sortie via le pont diviseur constitué de R<sub>1</sub> et R<sub>2</sub> :
+        <div class="formula">β = R<sub>2</sub> / (R<sub>1</sub> + R<sub>2</sub>)</div>
+        Les seuils de basculement sont donc V<sub>high</sub> = +β · V<sub>sat</sub> et V<sub>low</sub> = -β · V<sub>sat</sub>.
+      </li>
+      <li><strong>Le condensateur C :</strong> se charge et se décharge à travers la résistance R, ce qui fait évoluer la tension V<sub>-</sub> sur l'entrée inverseuse :
+        <ol>
+          <li>Si V<sub>s</sub> = +V<sub>sat</sub>, le condensateur se charge vers +V<sub>sat</sub> pendant la durée T<sub>H</sub> (temps haut). Dès que V<sub>-</sub> dépasse +β · V<sub>sat</sub>, la sortie bascule instantanément à -V<sub>sat</sub>.</li>
+          <li>Si V<sub>s</sub> = -V<sub>sat</sub>, le condensateur se décharge vers -V<sub>sat</sub> pendant la duré  T<sub>B</sub> (temps bas). Dès que V<sub>-</sub> descend sous -β · V<sub>sat</sub>, la sortie bascule à +V<sub>sat</sub>.</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>Équations Théoriques, Fréquence N et Rapport Cyclique  δ</h3>
+    <p>L'évolution de la tension aux bornes du condensateur pendant un demi-cycle suit la loi de charge RC :</p>
+    <div class="formula">V<sub>-</sub>(t) = V<sub>final</sub> + (V<sub>initial</sub> - V<sub>final</sub>) · e<sup>-t / τ</sup></div>
+    <p>Avec la constante de temps <strong>τ = R · C</strong>, V<sub>initial</sub> = -β · V<sub>sat</sub> et V<sub>final</sub> = +V<sub>sat</sub>.</p>
+    <p>La durée d'un demi-cycle (T<sub>H</sub> = T<sub>B</sub> = T/2 pour un montage symétrique) s'obtient par :</p>
+    <div class="formula">T<sub>H</sub> = T<sub>B</sub> = R · C · ln( (1 + β) / (1 - β) )</div>
+    <p>Pour un signal symétrique, la période totale T et la fréquence <strong>N</strong> de l'oscillation sont :</p>
+    <div class="formula">T = T<sub>H</sub> + T<sub>B</sub> = 2 · R · C · ln( 1 + 2·R<sub>2</sub> / R<sub>1</sub> )</div>
+    <div class="formula">N = 1 / T</div>
+    <p>Le <strong>rapport cyclique  δ</strong> représente la fraction de la période pendant laquelle la sortie est au niveau haut (+V<sub>sat</sub>) :</p>
+    <div class="formula"> δ= T<sub>H</sub> / T = T<sub>H</sub> / (T<sub>H</sub> + T<sub>B</sub>)</div>
+    <p>Dans ce montage symétrique sans diodes (où T<sub>H</sub> = T<sub>B</sub> = T/2), le rapport cyclique est fixe :</p>
+    <div class="formula"> δ = 0,5 = 50 %</div>
+
+    <h3>Récapitulatif des Caractéristiques</h3>
+    <table class="theory-table">
+      <thead>
+        <tr>
+          <th>Paramètre</th>
+          <th>Expression / Valeur</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Régime de l'AOP</strong></td>
+          <td>Non linéaire (saturation)</td>
+        </tr>
+        <tr>
+          <td><strong>Seuils de basculement</strong></td>
+          <td>± β · V<sub>sat</sub> = ± (R<sub>2</sub> / (R<sub>1</sub> + R<sub>2</sub>)) · V<sub>sat</sub></td>
+        </tr>
+        <tr>
+          <td><strong>Constante de temps</strong></td>
+          <td>τ = R · C</td>
+        </tr>
+        <tr>
+          <td><strong>Fréquence N</strong></td>
+          <td>N = 1 / T = 1 / [2 · R · C · ln((1 + β) / (1 - β))]</td>
+        </tr>
+        <tr>
+          <td><strong>Rapport cyclique δ</strong></td>
+          <td>δ = T<sub>H</sub> / T = 0,5 (50 %)</td>
+        </tr>
+        <tr>
+          <td><strong>Cas particulier (R<sub>1</sub> = R<sub>2</sub>)</strong></td>
+          <td>β = 0,5 ⇒ T ≈ 2,2 · R · C ⇒ N ≈ 1 / (2,2 · R · C)</td>
+        </tr>
+        <tr>
+          <td><strong>Forme d'onde sortie</strong></td>
+          <td>Signal rectangulaire entre +V<sub>sat</sub> et -V<sub>sat</sub></td>
+        </tr>
+        <tr>
+          <td><strong>Forme d'onde V<sub>-</sub></strong></td>
+          <td>Dents de scie exponentielles entre -β · V<sub>sat</sub> et +β · V<sub>sat</sub></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+
+function toggleTheory() {
+  const card = el('theoryCard');
+  const btn = el('toggleTheoryBtn');
+  if (card.style.display === 'block') {
+    card.style.display = 'none';
+    btn.textContent = '📘 Afficher le résumé théorique';
+  } else {
+    card.style.display = 'block';
+    btn.textContent = '📘 Masquer le résumé théorique';
+  }
+}
+
+function fmtTime(s) {
+  if (s < 1e-6) return (s*1e9).toFixed(1) + ' ns';
+  if (s < 1e-3) return (s*1e6).toFixed(1) + ' µs';
+  if (s < 1) return (s*1e3).toFixed(2) + ' ms';
+  return s.toFixed(2) + ' s';
+}
+function fmtFreq(f) {
+  if (f > 1e6) return (f/1e6).toFixed(2) + ' MHz';
+  if (f > 1e3) return (f/1e3).toFixed(2) + ' kHz';
+  return f.toFixed(1) + ' Hz';
+}
+function fmtVolt(v) {
+  if (v < 1) return (v*1000).toFixed(0) + ' mV';
+  return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2)) + ' V';
+}
+function niceStep(raw) {
+  const exponent = Math.floor(Math.log10(raw));
+  const base = raw / Math.pow(10, exponent);
+  let niceBase;
+  if (base < 1.5) niceBase = 1;
+  else if (base < 3.5) niceBase = 2;
+  else if (base < 7.5) niceBase = 5;
+  else niceBase = 10;
+  return niceBase * Math.pow(10, exponent);
+}
+
+function buildGrid() {
+  const g = el('gridLines');
+  g.innerHTML = '';
+  for (let i = 1; i < 8; i++) {
+    if (i === 4) continue;
+    const y = (i/8) * 320;
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('x1', 0); line.setAttribute('x2', 640);
+    line.setAttribute('y1', y); line.setAttribute('y2', y);
+    line.setAttribute('stroke', 'var(--scope-grid)');
+    line.setAttribute('stroke-width', '0.5');
+    g.appendChild(line);
+  }
+  for (let i = 1; i < 10; i++) {
+    const x = (i/10) * 640;
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('y1', 0); line.setAttribute('y2', 320);
+    line.setAttribute('x1', x); line.setAttribute('x2', x);
+    line.setAttribute('stroke', 'var(--scope-grid)');
+    line.setAttribute('stroke-width', '0.5');
+    g.appendChild(line);
+  }
+}
+buildGrid();
+
+function update() {
+  const R1 = parseFloat(el('r1').value) * 1000;
+  const R2 = parseFloat(el('r2').value) * 1000;
+  const R = parseFloat(el('r').value) * 1000;
+  const C = parseFloat(el('c').value) * 1e-9;
+  const Vsat = parseFloat(el('vsat').value);
+
+  el('r1Out').textContent = el('r1').value + ' kΩ';
+  el('r2Out').textContent = el('r2').value + ' kΩ';
+  el('rOut').textContent = el('r').value + ' kΩ';
+  el('cOut').textContent = el('c').value + ' nF';
+  el('vsatOut').textContent = Vsat.toFixed(1) + ' V';
+
+  el('r1ValText').textContent = el('r1').value + ' kΩ';
+  el('r2ValText').textContent = el('r2').value + ' kΩ';
+  el('rValText').textContent = el('r').value + ' kΩ';
+  el('cValText').textContent = el('c').value + ' nF';
+
+  const beta = R2 / (R1 + R2);
+  const t1 = R * C * Math.log((1 + beta) / (1 - beta));
+  const T = 2 * t1;
+  const N = 1 / T;
+
+  el('tOut').textContent = fmtTime(T);
+  el('fOut').textContent = fmtFreq(N);
+  el('betaOut').textContent = beta.toFixed(3);
+  el('seuilOut').textContent = '± ' + (beta*Vsat).toFixed(2) + ' V';
+
+  drawScope(R, C, Vsat, beta, t1, T);
+}
+
+function drawScope(R, C, Vsat, beta, t1, T) {
+  const rawVoltPerDiv = (Vsat * 1.25 * 2) / 8;
+  const voltDiv = niceStep(rawVoltPerDiv);
+  const vMax = voltDiv * 4;
+
+  const totalT = T * 3;
+  const rawTimePerDiv = totalT / 10;
+  const timeDiv = niceStep(rawTimePerDiv);
+  const displayT = timeDiv * 10;
+
+  el('voltDivOut').textContent = fmtVolt(voltDiv);
+  el('timeDivOut').textContent = fmtTime(timeDiv);
+
+  const yOf = v => 160 - (v / vMax) * 160;
+  const N_pts = 300;
+
+  let voutPts = [];
+  let vcPts = [];
+  for (let i = 0; i <= N_pts; i++) {
+    const t = (i/N_pts) * displayT;
+    const phase = t % T;
+    const x = (i/N_pts) * 640;
+    const vout = phase < t1 ? Vsat : -Vsat;
+    voutPts.push(x.toFixed(1) + ',' + yOf(vout).toFixed(1));
+    let vc;
+    if (phase < t1) {
+      vc = Vsat - (Vsat + beta*Vsat) * Math.exp(-phase / (R*C));
+    } else {
+      const p2 = phase - t1;
+      vc = -Vsat + (Vsat + beta*Vsat) * Math.exp(-p2 / (R*C));
+    }
+    vcPts.push(x.toFixed(1) + ',' + yOf(vc).toFixed(1));
+  }
+  el('voutLine').setAttribute('points', voutPts.join(' '));
+  el('vcLine').setAttribute('points', vcPts.join(' '));
+}
+
+['r1','r2','r','c','vsat'].forEach(id => el(id).addEventListener('input', update));
+update();
+</script>
+</body>
+</html>

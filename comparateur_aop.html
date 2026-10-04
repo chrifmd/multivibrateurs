@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparateur à Hystérésis (Trigger de Schmitt Inverseur)</title>
+<style>
+  :root {
+    --bg: #12151a;
+    --card: #1b1f26;
+    --border: #2a2f38;
+    --text: #eae8e1;
+    --text-secondary: #93918a;
+    --accent: #7C9EF0;
+    --accent-hover: #5a82e6;
+    --ue-color: #E2B93B;
+    --us-color: #7C9EF0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 1.5rem 1rem;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  
+  /* Navigation */
+  .nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .btn-back {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .btn-back:hover { color: var(--text); border-color: var(--text); }
+  .nav-select {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+  }
+  .nav-select:focus { border-color: var(--accent); }
+
+  header { text-align: center; margin-bottom: 1.5rem; }
+  h1 { font-size: 24px; font-weight: 700; margin: 0 0 8px; color: var(--text); }
+  p.sub { color: var(--text-secondary); font-size: 15px; margin: 0; }
+
+  /* Carte générale */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .card h2 {
+    font-size: 16px;
+    margin: 0 0 1rem;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+
+  /* Schéma */
+  .schema-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .schema-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #15181e;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  /* Section Basse */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  @media (min-width: 900px) {
+    .bottom-grid { grid-template-columns: 1fr 360px; }
+  }
+
+  /* Contrôles */
+  .control-group { margin-bottom: 0.85rem; }
+  .control-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+  }
+  .control-group span.val { color: var(--text); font-weight: 600; font-family: monospace; }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    background: var(--border);
+    border-radius: 4px;
+    height: 6px;
+    outline: none;
+  }
+
+  /* Bouton Pause */
+  .btn-pause {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.6rem;
+    background: var(--accent);
+    color: #12151a;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-pause:hover { background: var(--accent-hover); }
+  .btn-pause.paused { background: #e74c3c; color: #fff; }
+
+  /* Sensibilités Oscilloscope */
+  .sensitivities-bar {
+    display: flex;
+    justify-content: space-around;
+    background: #15181e;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .sensitivities-bar span { color: var(--accent); font-weight: 600; font-family: monospace; }
+
+  .plots-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  @media (min-width: 600px) {
+    .plots-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .canvas-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .canvas-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    align-self: flex-start;
+  }
+  canvas {
+    background: #111418;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%;
+    height: auto;
+  }
+
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+    font-size: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+  .legend-color { width: 12px; height: 3px; border-radius: 2px; }
+
+  /* Bouton pour basculer le résumé théorique complet */
+  .btn-toggle {
+    display: block;
+    background: rgba(124, 158, 240, 0.15);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0 auto 1.5rem;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-toggle:hover { background: var(--accent); color: var(--bg); }
+
+  /* Carte du résumé théorique complet (cachée par défaut) */
+  #theoryCard { display: none; }
+  #theoryCard h3 {
+    font-size: 15px;
+    color: var(--us-color);
+    margin: 1.2rem 0 0.4rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.2rem;
+  }
+  #theoryCard h3:first-of-type { margin-top: 0; }
+  #theoryCard ul, #theoryCard ol { margin: 0 0 1rem; padding-left: 1.2rem; }
+  #theoryCard li { margin-bottom: 0.4rem; }
+  .formula {
+    background: #15181e;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 15px;
+    color: var(--ue-color);
+    margin: 0.8rem 0;
+  }
+  .theory-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 14px; }
+  .theory-table th, .theory-table td { border: 1px solid var(--border); padding: 0.5rem 0.8rem; text-align: left; }
+  .theory-table th { background: #15181e; color: var(--text-secondary); }
+
+  /* Grandeurs calculées (remplace l'ancien encadré sous les paramètres) */
+  .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 1rem; }
+  @media (min-width: 400px) { .metrics { grid-template-columns: repeat(3, 1fr); } }
+  .metric { background: #15181e; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; }
+  .metric p.label { font-size: 12px; color: var(--text-secondary); margin: 0 0 4px; }
+  .metric p.value { font-size: 16px; font-weight: 600; margin: 0; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  
+  <div class="nav-bar">
+    <a href="index.html" class="btn-back">← Accueil</a>
+    <select class="nav-select" onchange="window.location.href=this.value">
+      <option value="comparateur_aop.html" selected>Comparateur AOP</option>
+      <option value="comparateur_4093.html">Comparateur CD4093</option>
+    </select>
+  </div>
+
+  <header>
+    <h1>Comparateur à Hystérésis Inverseur</h1>
+    <p class="sub">Trigger de Schmitt à AOP attaqué par une tension triangulaire (GBF)</p>
+  </header>
+
+  <!-- Section Schéma -->
+  <div class="card schema-card">
+    <h2>Schéma du montage</h2>
+    <div class="schema-container">
+      <svg width="300" height="230" viewBox="0 0 300 230">
+        <!-- AOP -->
+        <polygon points="120,35 120,115 190,75" fill="#1b1f26" stroke="#7C9EF0" stroke-width="2"/>
+        <text x="128" y="55" fill="#eae8e1" font-size="16" font-family="sans-serif">-</text>
+        <text x="128" y="100" fill="#eae8e1" font-size="16" font-family="sans-serif">+</text>
+        
+        <!-- Connexion Entrée - vers GBF -->
+        <line x1="40" y1="50" x2="120" y2="50" stroke="#eae8e1" stroke-width="1.5"/>
+        
+        <!-- Fil vertical GBF -->
+        <line x1="40" y1="50" x2="40" y2="106" stroke="#eae8e1" stroke-width="1.5"/>
+        <circle cx="40" cy="120" r="14" fill="#1b1f26" stroke="#7C9EF0" stroke-width="2"/>
+        <text x="31" y="124" fill="#7C9EF0" font-size="10" font-weight="bold" font-family="sans-serif">GBF</text>
+        <line x1="40" y1="134" x2="40" y2="200" stroke="#eae8e1" stroke-width="1.5"/>
+        
+        <!-- Masse -->
+        <line x1="20" y1="200" x2="110" y2="200" stroke="#eae8e1" stroke-width="2"/>
+        <line x1="85" y1="200" x2="85" y2="206" stroke="#eae8e1" stroke-width="2"/>
+        <line x1="75" y1="206" x2="95" y2="206" stroke="#eae8e1" stroke-width="2"/>
+        <line x1="79" y1="210" x2="91" y2="210" stroke="#eae8e1" stroke-width="1.5"/>
+        <line x1="83" y1="214" x2="87" y2="214" stroke="#eae8e1" stroke-width="1"/>
+
+        <!-- Point A et voie Y1 -->
+        <circle cx="75" cy="50" fill="#E2B93B" r="3"/>
+        <text x="81" y="40" fill="#E2B93B" font-size="12" font-weight="bold">A</text>
+        <line x1="75" y1="50" x2="75" y2="20" stroke="#E2B93B" stroke-width="1.5"/>
+        <polygon points="75,15 71,23 79,23" fill="#E2B93B"/>
+        <text x="82" y="25" fill="#E2B93B" font-size="12" font-weight="bold">Y1</text>
+        
+        <!-- Flèche tension ue -->
+        <line x1="55" y1="190" x2="55" y2="65" stroke="#E2B93B" stroke-width="1.5"/>
+        <polygon points="55,60 51,68 59,68" fill="#E2B93B"/>
+        <text x="60" y="90" fill="#E2B93B" font-size="13">ue</text>
+
+        <!-- Réseau + -->
+        <line x1="120" y1="95" x2="100" y2="95" stroke="#eae8e1" stroke-width="1.5"/>
+        
+        <!-- R1 Verticale -->
+        <line x1="100" y1="95" x2="100" y2="125" stroke="#eae8e1" stroke-width="1.5"/>
+        <rect x="92" y="125" width="16" height="35" fill="#1b1f26" stroke="#7C9EF0" stroke-width="1.5"/>
+        <text x="70" y="147" fill="#eae8e1" font-size="12">R1</text>
+        <line x1="100" y1="160" x2="100" y2="200" stroke="#eae8e1" stroke-width="1.5"/>
+
+        <!-- R2 Horizontale -->
+        <line x1="100" y1="170" x2="140" y2="170" stroke="#eae8e1" stroke-width="1.5"/>
+        <rect x="140" y="162" width="40" height="16" fill="#1b1f26" stroke="#7C9EF0" stroke-width="1.5"/>
+        <text x="153" y="144" fill="#eae8e1" font-size="12">R2</text>
+        <line x1="180" y1="170" x2="220" y2="170" stroke="#eae8e1" stroke-width="1.5"/>
+        
+        <!-- Boucle R2 -->
+        <line x1="220" y1="170" x2="220" y2="75" stroke="#eae8e1" stroke-width="1.5"/>
+
+        <!-- Sortie S / Voie Y2 -->
+        <line x1="190" y1="75" x2="265" y2="75" stroke="#7C9EF0" stroke-width="1.5"/>
+        <circle cx="210" cy="75" fill="#7C9EF0" r="3"/>
+        <text x="188" y="65" fill="#eae8e1" font-size="12" font-weight="bold">S</text>
+        
+        <line x1="265" y1="75" x2="285" y2="75" stroke="#7C9EF0" stroke-width="1.5"/>
+        <polygon points="290,75 282,71 282,79" fill="#7C9EF0"/>
+        <text x="270" y="65" fill="#7C9EF0" font-size="12" font-weight="bold">Y2</text>
+
+        <!-- Flèche tension us -->
+        <line x1="245" y1="190" x2="245" y2="90" stroke="#7C9EF0" stroke-width="1.5"/>
+        <polygon points="245,85 241,93 249,93" fill="#7C9EF0"/>
+        <text x="252" y="135" fill="#7C9EF0" font-size="13">us</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Section Basse -->
+  <div class="bottom-grid">
+    
+    <!-- Gauche : Oscilloscopes -->
+    <div class="card">
+      <h2>Visualisation Oscilloscope</h2>
+      
+      <div class="sensitivities-bar">
+        <div>Voie Y1 (ue) : <span id="sens-y1">5 V/div</span></div>
+        <div>Voie Y2 (us) : <span id="sens-y2">5 V/div</span></div>
+        <div>Base de temps : <span id="sens-time">2.5 ms/div</span></div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background:var(--ue-color)"></div>
+          <span>Entrée ue(t)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background:var(--us-color)"></div>
+          <span>Sortie us(t)</span>
+        </div>
+      </div>
+
+      <div class="plots-grid">
+        <div class="canvas-card">
+          <div class="canvas-title">Oscillogramme : Signaux Temporels</div>
+          <canvas id="timeCanvas" width="380" height="300"></canvas>
+        </div>
+        <div class="canvas-card">
+          <div class="canvas-title">Caractéristique : us = f(ue)</div>
+          <canvas id="xyCanvas" width="300" height="300"></canvas>
+        </div>
+      </div>
+
+      <!-- Bouton Pause -->
+      <button id="btn-toggle" class="btn-pause">⏸ Pause Animation</button>
+    </div>
+
+    <!-- Droite : Réglages -->
+    <div class="card">
+      <h2>Réglages</h2>
+      
+      <div class="control-group">
+        <label>Amplitude Ue (GBF) <span class="val" id="val-ue">10 V</span></label>
+        <input type="range" id="param-ue" min="2" max="15" step="0.5" value="10">
+      </div>
+
+      <div class="control-group">
+        <label>Fréquence N <span class="val" id="val-f">100 Hz</span></label>
+        <input type="range" id="param-f" min="20" max="500" step="10" value="100">
+      </div>
+
+      <div class="control-group">
+        <label>Résistance R1 <span class="val" id="val-r1">10 kΩ</span></label>
+        <input type="range" id="param-r1" min="1" max="50" step="1" value="10">
+      </div>
+
+      <div class="control-group">
+        <label>Résistance R2 <span class="val" id="val-r2">22 kΩ</span></label>
+
+        <input type="range" id="param-r2" min="1" max="100" step="1" value="22">
+      </div>
+
+      <div class="control-group">
+        <label>Saturation Vsat <span class="val" id="val-vsat">12 V</span></label>
+        <input type="range" id="param-vsat" min="5" max="15" step="0.5" value="12">
+      </div>
+
+      <!-- Grandeurs calculées -->
+      <div class="metrics">
+        <div class="metric"><p class="label">Seuil haut V<sub>H</sub></p><p class="value" id="calc-vh">+3.75 V</p></div>
+        <div class="metric"><p class="label">Seuil bas V<sub>L</sub></p><p class="value" id="calc-vl">-3.75 V</p></div>
+        <div class="metric"><p class="label">Largeur ΔV</p><p class="value" id="calc-dv">7.50 V</p></div>
+      </div>
+    </div>
+
+  </div>
+
+  <button class="btn-toggle" id="toggleTheoryBtn" onclick="toggleTheory()">📘 Afficher le résumé théorique</button>
+
+  <!-- Section Résumé Théorique (Cachée par défaut) -->
+  <div class="card" id="theoryCard">
+    <h2>Aperçu Théorique</h2>
+    <p>Un <strong>comparateur à hystérésis</strong> (ou <em>trigger de Schmitt</em>) est un montage à amplificateur opérationnel fonctionnant en régime non linéaire (saturation), utilisé pour faire basculer une sortie entre deux niveaux tout en évitant les basculements parasites liés au bruit autour du seuil de comparaison.</p>
+
+    <h3>Principe de Fonctionnement</h3>
+    <p>Dans ce montage <strong>inverseur</strong>, la tension à comparer u<sub>e</sub> est appliquée sur l'entrée <strong>inverseuse</strong> V<sub>-</sub>, tandis qu'une <strong>réaction positive</strong> ramène une fraction de la tension de sortie sur l'entrée <strong>non inverseuse</strong> V<sub>+</sub> via le diviseur R<sub>1</sub> / R<sub>2</sub>.</p>
+    <ul>
+      <li><strong>Tension de sortie u<sub>s</sub> :</strong> l'AOP fonctionnant en saturation, u<sub>s</sub> ne peut prendre que deux valeurs : +V<sub>sat</sub> ou -V<sub>sat</sub>.</li>
+      <li><strong>Tension de référence V<sub>+</sub> :</strong> dépend de la sortie via le pont diviseur R<sub>1</sub> / R<sub>2</sub> :
+        <div class="formula">V<sub>+</sub> = β · u<sub>s</sub>,&nbsp;&nbsp;avec&nbsp;&nbsp;β = R<sub>1</sub> / (R<sub>1</sub> + R<sub>2</sub>)</div>
+      </li>
+      <li><strong>Basculement :</strong>
+        <ol>
+          <li>Si u<sub>s</sub> = +V<sub>sat</sub>, le seuil vaut V<sub>H</sub> = +β · V<sub>sat</sub>. Dès que u<sub>e</sub> dépasse V<sub>H</sub>, la sortie bascule à -V<sub>sat</sub>.</li>
+          <li>Si u<sub>s</sub> = -V<sub>sat</sub>, le seuil vaut V<sub>L</sub> = -β · V<sub>sat</sub>. Dès que u<sub>e</sub> descend sous V<sub>L</sub>, la sortie bascule à +V<sub>sat</sub>.</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>Seuils de Basculement et Largeur d'Hystérésis</h3>
+    <p>Les deux seuils de basculement délimitent une zone morte (hystérésis) autour de l'origine :</p>
+    <div class="formula">V<sub>H</sub> = +β · V<sub>sat</sub>&nbsp;&nbsp;&nbsp;&nbsp;V<sub>L</sub> = -β · V<sub>sat</sub></div>
+    <p>La largeur totale de l'hystérésis, c'est-à-dire l'écart entre les deux seuils, vaut :</p>
+    <div class="formula">ΔV = V<sub>H</sub> - V<sub>L</sub> = 2 · β · V<sub>sat</sub> = 2 · R<sub>1</sub> / (R<sub>1</sub> + R<sub>2</sub>) · V<sub>sat</sub></div>
+    <p>Plus R<sub>1</sub> est grand par rapport à R<sub>2</sub>, plus β est proche de 1 et plus l'hystérésis est large : le montage devient alors plus robuste au bruit, mais moins sensible à de petites variations de u<sub>e</sub>.</p>
+
+    <h3>Caractéristique de Transfert u<sub>s</sub> = f(u<sub>e</sub>)</h3>
+    <p>La caractéristique statique du comparateur inverseur prend la forme d'un <strong>cycle rectangulaire</strong> :</p>
+    <ul>
+      <li>Tant que u<sub>e</sub> &lt; V<sub>H</sub>, la sortie reste à +V<sub>sat</sub> (si elle y était déjà).</li>
+      <li>Dès que u<sub>e</sub> &gt; V<sub>H</sub>, la sortie chute à -V<sub>sat</sub>.</li>
+      <li>Tant que u<sub>e</sub> &gt; V<sub>L</sub>, la sortie reste à -V<sub>sat</sub> (si elle y était déjà).</li>
+      <li>Dès que u<sub>e</sub> &lt; V<sub>L</sub>, la sortie remonte à +V<sub>sat</sub>.</li>
+    </ul>
+    <p>Ce cycle explique pourquoi le montage est insensible à de petites oscillations parasites de u<sub>e</sub> autour d'un seuil unique : il faut franchir toute la largeur ΔV pour provoquer un nouveau basculement.</p>
+
+    <h3>Récapitulatif des Caractéristiques</h3>
+    <table class="theory-table">
+      <thead>
+        <tr><th>Paramètre</th><th>Expression / Valeur</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Régime de l'AOP</strong></td><td>Non linéaire (saturation)</td></tr>
+        <tr><td><strong>Entrée comparée</strong></td><td>u<sub>e</sub> sur l'entrée inverseuse V<sub>-</sub></td></tr>
+        <tr><td><strong>Coefficient de réaction</strong></td><td>β = R<sub>1</sub> / (R<sub>1</sub> + R<sub>2</sub>)</td></tr>
+        <tr><td><strong>Seuil haut</strong></td><td>V<sub>H</sub> = +β · V<sub>sat</sub></td></tr>
+        <tr><td><strong>Seuil bas</strong></td><td>V<sub>L</sub> = -β · V<sub>sat</sub></td></tr>
+        <tr><td><strong>Largeur d'hystérésis</strong></td><td>ΔV = V<sub>H</sub> - V<sub>L</sub> = 2 · β · V<sub>sat</sub></td></tr>
+        <tr><td><strong>Forme d'onde sortie</strong></td><td>Signal carré entre +V<sub>sat</sub> et -V<sub>sat</sub></td></tr>
+        <tr><td><strong>Caractéristique u<sub>s</sub> = f(u<sub>e</sub>)</strong></td><td>Cycle rectangulaire (hystérésis)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  // Sélection des éléments DOM
+  const pUe = document.getElementById('param-ue');
+  const pF = document.getElementById('param-f');
+  const pR1 = document.getElementById('param-r1');
+  const pR2 = document.getElementById('param-r2');
+  const pVsat = document.getElementById('param-vsat');
+
+  const vUe = document.getElementById('val-ue');
+  const vF = document.getElementById('val-f');
+  const vR1 = document.getElementById('val-r1');
+  const vR2 = document.getElementById('val-r2');
+  const vVsat = document.getElementById('val-vsat');
+  
+  const calcVl = document.getElementById('calc-vl');
+  const calcVh = document.getElementById('calc-vh');
+  const calcDv = document.getElementById('calc-dv');
+
+  const sensY1 = document.getElementById('sens-y1');
+  const sensY2 = document.getElementById('sens-y2');
+  const sensTime = document.getElementById('sens-time');
+
+  const btnToggle = document.getElementById('btn-toggle');
+
+  const timeCanvas = document.getElementById('timeCanvas');
+  const xyCanvas = document.getElementById('xyCanvas');
+  const ctxTime = timeCanvas.getContext('2d');
+  const ctxXY = xyCanvas.getContext('2d');
+
+  let timeOffset = 0;
+  let isRunning = true;
+
+  // Bascule l'affichage du résumé théorique complet
+  function toggleTheory() {
+    const card = document.getElementById('theoryCard');
+    const btn = document.getElementById('toggleTheoryBtn');
+    if (card.style.display === 'block') {
+      card.style.display = 'none';
+      btn.textContent = '📘 Afficher le résumé théorique';
+    } else {
+      card.style.display = 'block';
+      btn.textContent = '📘 Masquer le résumé théorique';
+    }
+  }
+
+  // Gestion Pause / Reprendre
+  btnToggle.addEventListener('click', () => {
+    isRunning = !isRunning;
+    if (isRunning) {
+      btnToggle.textContent = '⏸ Pause Animation';
+      btnToggle.classList.remove('paused');
+    } else {
+      btnToggle.textContent = '▶ Reprendre Animation';
+      btnToggle.classList.add('paused');
+    }
+  });
+
+  function update() {
+    const Ue = parseFloat(pUe.value);
+    const freq = parseFloat(pF.value);
+    const R1 = parseFloat(pR1.value);
+    const R2 = parseFloat(pR2.value);
+    const Vsat = parseFloat(pVsat.value);
+
+    // Mise à jour des textes
+    vUe.textContent = Ue + " V";
+    vF.textContent = freq + " Hz";
+    vR1.textContent = R1 + " kΩ";
+    vR2.textContent = R2 + " kΩ";
+    vVsat.textContent = Vsat + " V";
+
+    // Calculs théoriques
+    const Vh = (R1 / (R1 + R2)) * Vsat;
+    const Vl = -Vh;
+
+    calcVh.textContent = "+" + Vh.toFixed(2) + " V";
+    calcVl.textContent = Vl.toFixed(2) + " V";
+    calcDv.textContent = (Vh - Vl).toFixed(2) + " V";
+
+    // Sensibilités
+    const maxVoltage = Math.max(Ue, Vsat);
+    const vPerDiv = (maxVoltage * 1.25 / 4).toFixed(1);
+    const tPerDiv = ((2 / freq) / 8 * 1000).toFixed(1);
+
+    sensY1.textContent = vPerDiv + " V/div";
+    sensY2.textContent = vPerDiv + " V/div";
+    sensTime.textContent = tPerDiv + " ms/div";
+
+    // Tracé des oscillogrammes
+    drawTimeDomain(Ue, freq, Vsat, Vh, Vl);
+    drawXYDomain(Ue, Vsat, Vh, Vl);
+  }
+
+  // Signal triangulaire du GBF
+  function getTriangleWave(t, freq, amp) {
+    const T = 1 / freq;
+    const phase = (t % T) / T;
+    if (phase < 0.25) return amp * (phase * 4);
+    if (phase < 0.75) return amp * (1 - (phase - 0.25) * 4);
+    return amp * (-1 + (phase - 0.75) * 4);
+  }
+
+  // Grille
+  function drawGrid(ctx, w, h, xLabel, yLabel) {
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = '#252a34';
+    ctx.lineWidth = 1;
+
+    const cols = 8;
+    const rows = 8;
+    for (let i = 0; i <= cols; i++) {
+      let x = (w / cols) * i;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (let j = 0; j <= rows; j++) {
+      let y = (h / rows) * j;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#4a5162';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w/2, 0); ctx.lineTo(w/2, h); ctx.stroke();
+
+    ctx.fillStyle = '#93918a';
+    ctx.font = '10px monospace';
+    ctx.fillText(xLabel, w - 20, h/2 - 5);
+    ctx.fillText(yLabel, w/2 + 5, 12);
+  }
+
+  // Tracé Temporel ue(t) et us(t)
+  function drawTimeDomain(Ue, freq, Vsat, Vh, Vl) {
+    const w = timeCanvas.width;
+    const h = timeCanvas.height;
+    drawGrid(ctxTime, w, h, "t", "u (V)");
+
+    const scaleY = (h / 2) / (Math.max(Ue, Vsat) * 1.25);
+    const numPeriods = 2;
+    const totalTime = numPeriods / freq;
+
+    // Lignes VH et VL
+    ctxTime.setLineDash([4, 4]);
+    ctxTime.strokeStyle = '#555';
+    ctxTime.lineWidth = 1;
+    
+    let yVh = h/2 - Vh * scaleY;
+    ctxTime.beginPath(); ctxTime.moveTo(0, yVh); ctxTime.lineTo(w, yVh); ctxTime.stroke();
+    ctxTime.fillStyle = '#888';
+    ctxTime.fillText("VH", 5, yVh - 3);
+
+    let yVl = h/2 - Vl * scaleY;
+    ctxTime.beginPath(); ctxTime.moveTo(0, yVl); ctxTime.lineTo(w, yVl); ctxTime.stroke();
+    ctxTime.fillText("VL", 5, yVl + 10);
+    ctxTime.setLineDash([]);
+
+    let currentUs = -Vsat;
+    ctxTime.lineWidth = 2;
+
+    // Signal ue(t)
+    ctxTime.strokeStyle = '#E2B93B';
+    ctxTime.beginPath();
+    for (let x = 0; x < w; x++) {
+      let t = timeOffset + (x / w) * totalTime;
+      let ue = getTriangleWave(t, freq, Ue);
+      let y = h/2 - ue * scaleY;
+      if (x === 0) ctxTime.moveTo(x, y);
+      else ctxTime.lineTo(x, y);
+    }
+    ctxTime.stroke();
+
+    // Signal us(t)
+    ctxTime.strokeStyle = '#7C9EF0';
+    ctxTime.beginPath();
+    for (let x = 0; x < w; x++) {
+      let t = timeOffset + (x / w) * totalTime;
+      let ue = getTriangleWave(t, freq, Ue);
+      
+      if (currentUs === -Vsat && ue <= Vl) {
+        currentUs = Vsat;
+      } else if (currentUs === Vsat && ue >= Vh) {
+        currentUs = -Vsat;
+      }
+
+      let y = h/2 - currentUs * scaleY;
+      if (x === 0) ctxTime.moveTo(x, y);
+      else ctxTime.lineTo(x, y);
+    }
+    ctxTime.stroke();
+  }
+
+  // Tracé Hystérésis us = f(ue)
+  function drawXYDomain(Ue, Vsat, Vh, Vl) {
+    const w = xyCanvas.width;
+    const h = xyCanvas.height;
+    drawGrid(ctxXY, w, h, "ue", "us");
+
+    const maxVal = Math.max(Ue, Vsat) * 1.25;
+    const scaleX = (w / 2) / maxVal;
+    const scaleY = (h / 2) / maxVal;
+
+    const xVh = w/2 + Vh * scaleX;
+    const xVl = w/2 + Vl * scaleX;
+    const yVsatPos = h/2 - Vsat * scaleY;
+    const yVsatNeg = h/2 + Vsat * scaleY;
+
+    if (Ue < Vh) {
+      ctxXY.fillStyle = '#e74c3c';
+      ctxXY.font = '12px sans-serif';
+      ctxXY.fillText("Ue insuffisante pour basculer", 20, 30);
+      return;
+    }
+
+    ctxXY.strokeStyle = '#7C9EF0';
+    ctxXY.lineWidth = 2.5;
+
+    ctxXY.beginPath();
+    ctxXY.moveTo(w/2 - Ue * scaleX, yVsatPos);
+    ctxXY.lineTo(xVh, yVsatPos);
+    ctxXY.lineTo(xVh, yVsatNeg);
+    ctxXY.lineTo(w/2 + Ue * scaleX, yVsatNeg);
+    ctxXY.lineTo(xVl, yVsatNeg);
+    ctxXY.lineTo(xVl, yVsatPos);
+    ctxXY.lineTo(w/2 - Ue * scaleX, yVsatPos);
+    ctxXY.stroke();
+
+    drawArrow(ctxXY, (xVl + xVh)/2, yVsatPos, 10, 0);
+    drawArrow(ctxXY, (xVl + xVh)/2, yVsatNeg, -10, 0);
+
+    ctxXY.fillStyle = '#eae8e1';
+    ctxXY.font = '10px monospace';
+    ctxXY.fillText("VH", xVh - 6, h/2 + 14);
+    ctxXY.fillText("VL", xVl - 6, h/2 + 14);
+  }
+
+  function drawArrow(ctx, x, y, dx, dy) {
+    ctx.save();
+    ctx.fillStyle = '#7C9EF0';
+    ctx.beginPath();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-8, -4);
+    ctx.lineTo(-8, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Boucle d'animation
+  function animate() {
+    if (isRunning) {
+      timeOffset += 0.0001 * (parseFloat(pF.value) / 50);
+    }
+    update();
+    requestAnimationFrame(animate);
+  }
+
+  // Écouteurs d'événements
+  [pUe, pF, pR1, pR2, pVsat].forEach(input => {
+    input.addEventListener('input', update);
+  });
+
+  animate();
+</script>
+</body>
+</html>

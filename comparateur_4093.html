@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparateur à Hystérésis (Porte CMOS CD4093)</title>
+<style>
+  :root {
+    --bg: #12151a;
+    --card: #1b1f26;
+    --border: #2a2f38;
+    --text: #eae8e1;
+    --text-secondary: #93918a;
+    --accent: #7C9EF0;
+    --accent-hover: #5a82e6;
+    --ue-color: #E2B93B;
+    --us-color: #7C9EF0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 1.5rem 1rem;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  
+  /* Navigation */
+  .nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .btn-back {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .btn-back:hover { color: var(--text); border-color: var(--text); }
+  .nav-select {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+  }
+  .nav-select:focus { border-color: var(--accent); }
+
+  header { text-align: center; margin-bottom: 1.5rem; }
+  h1 { font-size: 24px; font-weight: 700; margin: 0 0 8px; color: var(--text); }
+  p.sub { color: var(--text-secondary); font-size: 15px; margin: 0; }
+
+  /* Cartes */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .card h2 {
+    font-size: 16px;
+    margin: 0 0 1rem;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+
+  /* Schéma */
+  .schema-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .schema-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #15181e;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  /* Section Basse */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  @media (min-width: 900px) {
+    .bottom-grid { grid-template-columns: 1fr 360px; }
+  }
+
+  /* Contrôles */
+  .control-group { margin-bottom: 0.85rem; }
+  .control-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+  }
+  .control-group span.val { color: var(--text); font-weight: 600; font-family: monospace; }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    background: var(--border);
+    border-radius: 4px;
+    height: 6px;
+    outline: none;
+  }
+
+  /* Bouton Pause */
+  .btn-pause {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.6rem;
+    background: var(--accent);
+    color: #12151a;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-pause:hover { background: var(--accent-hover); }
+  .btn-pause.paused { background: #e74c3c; color: #fff; }
+
+  /* Sensibilités Oscilloscope */
+  .sensitivities-bar {
+    display: flex;
+    justify-content: space-around;
+    background: #15181e;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .sensitivities-bar span { color: var(--accent); font-weight: 600; font-family: monospace; }
+
+  .plots-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  @media (min-width: 600px) {
+    .plots-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .canvas-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .canvas-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    align-self: flex-start;
+  }
+  canvas {
+    background: #111418;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%;
+    height: auto;
+  }
+
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+    font-size: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+  .legend-color { width: 12px; height: 3px; border-radius: 2px; }
+
+  /* Bouton pour basculer le résumé théorique complet */
+  .btn-toggle {
+    display: block;
+    background: rgba(124, 158, 240, 0.15);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0 auto 1.5rem;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-toggle:hover { background: var(--accent); color: var(--bg); }
+
+  /* Carte du résumé théorique complet (cachée par défaut) */
+  #theoryCard { display: none; }
+  #theoryCard h3 {
+    font-size: 15px;
+    color: var(--us-color);
+    margin: 1.2rem 0 0.4rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.2rem;
+  }
+  #theoryCard h3:first-of-type { margin-top: 0; }
+  #theoryCard ul, #theoryCard ol { margin: 0 0 1rem; padding-left: 1.2rem; }
+  #theoryCard li { margin-bottom: 0.4rem; }
+  .formula {
+    background: #15181e;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 15px;
+    color: var(--ue-color);
+    margin: 0.8rem 0;
+  }
+  .theory-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 14px; }
+  .theory-table th, .theory-table td { border: 1px solid var(--border); padding: 0.5rem 0.8rem; text-align: left; }
+  .theory-table th { background: #15181e; color: var(--text-secondary); }
+
+  /* Grandeurs calculées (remplace l'ancien encadré sous les paramètres) */
+  .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 1rem; }
+  @media (min-width: 500px) { .metrics { grid-template-columns: repeat(3, 1fr); } }
+  .metric { background: #15181e; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; }
+  .metric p.label { font-size: 12px; color: var(--text-secondary); margin: 0 0 4px; }
+  .metric p.value { font-size: 16px; font-weight: 600; margin: 0; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  
+  <div class="nav-bar">
+    <a href="index.html" class="btn-back">← Accueil</a>
+    <select class="nav-select" onchange="window.location.href=this.value">
+      <option value="comparateur_aop.html">Comparateur AOP</option>
+      <option value="comparateur_4093.html" selected>Comparateur CD4093</option>
+    </select>
+  </div>
+
+  <header>
+    <h1>Comparateur à Hystérésis (CD4093)</h1>
+    <p class="sub">Trigger de Schmitt intégrateur/inverseur CMOS attaqué par un signal triangulaire (GBF)</p>
+  </header>
+
+  <!-- Section Schéma -->
+  <div class="card schema-card">
+    <h2>Schéma du montage</h2>
+    <div class="schema-container">
+      <svg width="320" height="230" viewBox="0 0 320 230">
+        <!-- Ligne d'alimentation haute -->
+        <line x1="170" y1="20" x2="170" y2="70" stroke="#eae8e1" stroke-width="2"/>
+
+        <!-- GBF -->
+        <circle cx="40" cy="115" r="14" fill="#1b1f26" stroke="#7C9EF0" stroke-width="2"/>
+        <text x="31" y="119" fill="#7C9EF0" font-size="10" font-weight="bold" font-family="sans-serif">GBF</text>
+        <line x1="40" y1="65" x2="40" y2="101" stroke="#eae8e1" stroke-width="1.5"/>
+        <line x1="40" y1="129" x2="40" y2="200" stroke="#eae8e1" stroke-width="1.5"/>
+
+        <!-- Résistance R -->
+        <line x1="40" y1="65" x2="65" y2="65" stroke="#eae8e1" stroke-width="1.5"/>
+        <rect x="65" y="57" width="40" height="16" fill="#7C9EF0" stroke="#7C9EF0" stroke-width="1.5"/>
+        <text x="81" y="47" fill="#eae8e1" font-size="13" font-weight="bold">R</text>
+        <line x1="105" y1="65" x2="145" y2="65" stroke="#eae8e1" stroke-width="1.5"/>
+
+        <!-- Point A et Voie Y1 -->
+        <circle cx="125" cy="65" fill="#E2B93B" r="3"/>
+        <text x="120" y="55" fill="#E2B93B" font-size="12" font-weight="bold">A</text>
+        <line x1="125" y1="65" x2="125" y2="30" stroke="#E2B93B" stroke-width="1.5"/>
+        <polygon points="125,25 121,33 129,33" fill="#E2B93B"/>
+        <text x="132" y="32" fill="#E2B93B" font-size="12" font-weight="bold">Y1</text>
+
+        <!-- Flèche tension ue -->
+        <line x1="108" y1="190" x2="108" y2="80" stroke="#E2B93B" stroke-width="1.5"/>
+        <polygon points="108,75 104,83 112,83" fill="#E2B93B"/>
+        <text x="113" y="130" fill="#E2B93B" font-size="13">ue</text>
+
+        <!-- Entrées reliées de la porte NAND -->
+        <line x1="145" y1="65" x2="145" y2="85" stroke="#eae8e1" stroke-width="1.5"/>
+        <line x1="145" y1="65" x2="155" y2="65" stroke="#eae8e1" stroke-width="1.5"/>
+        <line x1="145" y1="85" x2="155" y2="85" stroke="#eae8e1" stroke-width="1.5"/>
+
+        <!-- Porte NAND CD4093 avec symbole Trigger -->
+        <path d="M 155,55 L 175,55 A 20,20 0 0,1 175,95 L 155,95 Z" fill="#7C9EF0" fill-opacity="0.2" stroke="#7C9EF0" stroke-width="2"/>
+        <circle cx="199" cy="75" r="4" fill="#1b1f26" stroke="#7C9EF0" stroke-width="2"/>
+        
+        <!-- Symbole hysteresis dans la porte -->
+        <path d="M 163,80 L 171,80 L 171,70 L 177,70" fill="none" stroke="#eae8e1" stroke-width="1.2"/>
+        <path d="M 177,70 L 169,70 L 169,80 L 163,80" fill="none" stroke="#eae8e1" stroke-width="1.2"/>
+
+        <!-- Ligne de Masse sous la porte -->
+        <line x1="170" y1="95" x2="170" y2="200" stroke="#eae8e1" stroke-width="2"/>
+
+        <!-- Sortie S / Voie Y2 -->
+        <line x1="203" y1="75" x2="280" y2="75" stroke="#7C9EF0" stroke-width="1.5"/>
+        <circle cx="215" cy="75" fill="#7C9EF0" r="3"/>
+        <text x="210" y="65" fill="#eae8e1" font-size="12" font-weight="bold">S</text>
+
+        <line x1="280" y1="75" x2="295" y2="75" stroke="#7C9EF0" stroke-width="1.5"/>
+        <polygon points="300,75 292,71 292,79" fill="#7C9EF0"/>
+        <text x="282" y="65" fill="#7C9EF0" font-size="12" font-weight="bold">Y2</text>
+
+        <!-- Flèche tension us -->
+        <line x1="260" y1="190" x2="260" y2="90" stroke="#7C9EF0" stroke-width="1.5"/>
+        <polygon points="260,85 256,93 264,93" fill="#7C9EF0"/>
+        <text x="267" y="135" fill="#7C9EF0" font-size="13">us</text>
+
+        <!-- Masse M générale -->
+        <line x1="20" y1="200" x2="290" y2="200" stroke="#eae8e1" stroke-width="2"/>
+        <line x1="170" y1="200" x2="170" y2="206" stroke="#eae8e1" stroke-width="2"/>
+        <line x1="160" y1="206" x2="180" y2="206" stroke="#eae8e1" stroke-width="2"/>
+        <line x1="164" y1="210" x2="176" y2="210" stroke="#eae8e1" stroke-width="1.5"/>
+        <line x1="168" y1="214" x2="172" y2="214" stroke="#eae8e1" stroke-width="1"/>
+        <text x="185" y="212" fill="#eae8e1" font-size="14" font-weight="bold">M</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Section Basse -->
+  <div class="bottom-grid">
+    
+    <!-- Gauche : Oscilloscopes -->
+    <div class="card">
+      <h2>Visualisation Oscilloscope</h2>
+      
+      <div class="sensitivities-bar">
+        <div>Voie Y1 (ue) : <span id="sens-y1">2.0 V/div</span></div>
+        <div>Voie Y2 (us) : <span id="sens-y2">2.0 V/div</span></div>
+        <div>Base de temps : <span id="sens-time">2.5 ms/div</span></div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background:var(--ue-color)"></div>
+          <span>Entrée ue(t)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background:var(--us-color)"></div>
+          <span>Sortie us(t)</span>
+        </div>
+      </div>
+
+      <div class="plots-grid">
+        <div class="canvas-card">
+          <div class="canvas-title">Oscillogramme : Signaux Temporels</div>
+          <canvas id="timeCanvas" width="380" height="300"></canvas>
+        </div>
+        <div class="canvas-card">
+          <div class="canvas-title">Caractéristique : us = f(ue)</div>
+          <canvas id="xyCanvas" width="300" height="300"></canvas>
+        </div>
+      </div>
+
+      <!-- Bouton Pause -->
+      <button id="btn-toggle" class="btn-pause">⏸ Pause Animation</button>
+    </div>
+
+    <!-- Droite : Réglages -->
+    <div class="card">
+      <h2>Réglages</h2>
+      
+      <div class="control-group">
+        <label>Tension d'alimentation VDD <span class="val" id="val-vdd">10 V</span></label>
+        <input type="range" id="param-vdd" min="5" max="15" step="1" value="10">
+      </div>
+
+      <div class="control-group">
+        <label>Amplitude Ue (GBF) <span class="val" id="val-ue">10 V</span></label>
+        <input type="range" id="param-ue" min="2" max="15" step="0.5" value="10">
+      </div>
+
+      <div class="control-group">
+        <label>Fréquence N <span class="val" id="val-f">100 Hz</span></label>
+        <input type="range" id="param-f" min="20" max="500" step="10" value="100">
+      </div>
+
+      <!-- Grandeurs calculées -->
+      <div class="metrics">
+        <div class="metric"><p class="label">Seuil haut V<sub>T+</sub></p><p class="value" id="calc-vh">+5.80 V</p></div>
+        <div class="metric"><p class="label">Seuil bas V<sub>T-</sub></p><p class="value" id="calc-vl">+3.80 V</p></div>
+        <div class="metric"><p class="label">Hystérésis V<sub>H</sub></p><p class="value" id="calc-dv">2.00 V</p></div>
+      </div>
+    </div>
+
+  </div>
+
+  <button class="btn-toggle" id="toggleTheoryBtn" onclick="toggleTheory()">📘 Afficher le résumé théorique</button>
+
+  <!-- Section Résumé Théorique (Cachée par défaut) -->
+  <div class="card" id="theoryCard">
+    <h2>Aperçu Théorique</h2>
+    <p>Le <strong>CD4093</strong> est un circuit intégré CMOS regroupant quatre portes <strong>NAND à 2 entrées</strong>, dont les entrées possèdent un <strong>trigger de Schmitt intégré</strong>. En reliant les deux entrées d'une porte ensemble, celle-ci se comporte comme un simple <strong>inverseur à hystérésis</strong> : c'est ce montage qui est utilisé ici comme comparateur.</p>
+
+    <h3>Principe de Fonctionnement</h3>
+    <p>Contrairement à un comparateur à AOP où les seuils sont fixés par un pont diviseur externe (R<sub>1</sub>, R<sub>2</sub>), les seuils de basculement du CD4093 sont <strong>internes au circuit</strong> et proportionnels à la tension d'alimentation V<sub>DD</sub>.</p>
+    <ul>
+      <li><strong>Tension de sortie u<sub>s</sub> :</strong> logique et unipolaire, elle ne peut prendre que deux valeurs : 0 V ou V<sub>DD</sub> (pas de tension négative, contrairement au montage à AOP).</li>
+      <li><strong>Seuils typiques (valeurs constructeur) :</strong>
+        <div class="formula">V<sub>T+</sub> ≈ 0,58 · V<sub>DD</sub>&nbsp;&nbsp;&nbsp;&nbsp;V<sub>T-</sub> ≈ 0,38 · V<sub>DD</sub></div>
+      </li>
+      <li><strong>Basculement :</strong>
+        <ol>
+          <li>Si u<sub>e</sub> augmente et dépasse V<sub>T+</sub>, la sortie u<sub>s</sub> bascule à 0 V.</li>
+          <li>Si u<sub>e</sub> diminue et descend sous V<sub>T-</sub>, la sortie u<sub>s</sub> bascule à V<sub>DD</sub>.</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>Largeur d'Hystérésis</h3>
+    <p>L'écart entre les deux seuils constitue la largeur de l'hystérésis, elle aussi proportionnelle à V<sub>DD</sub> :</p>
+    <div class="formula">V<sub>H</sub> = V<sub>T+</sub> - V<sub>T-</sub> ≈ 0,20 · V<sub>DD</sub></div>
+    <p>Cette hystérésis, fixée par la technologie du circuit, ne dépend d'aucun composant externe : elle ne peut être ajustée qu'en changeant la tension d'alimentation V<sub>DD</sub>, contrairement au montage à AOP où R<sub>1</sub> et R<sub>2</sub> permettent de la régler librement.</p>
+
+    <h3>Caractéristique de Transfert u<sub>s</sub> = f(u<sub>e</sub>)</h3>
+    <p>La caractéristique statique prend la forme d'un <strong>cycle rectangulaire</strong>, décalé vers les tensions positives puisque la sortie est unipolaire :</p>
+    <ul>
+      <li>Tant que u<sub>e</sub> &lt; V<sub>T+</sub>, la sortie reste à V<sub>DD</sub> (si elle y était déjà).</li>
+      <li>Dès que u<sub>e</sub> &gt; V<sub>T+</sub>, la sortie chute à 0 V.</li>
+      <li>Tant que u<sub>e</sub> &gt; V<sub>T-</sub>, la sortie reste à 0 V (si elle y était déjà).</li>
+      <li>Dès que u<sub>e</sub> &lt; V<sub>T-</sub>, la sortie remonte à V<sub>DD</sub>.</li>
+    </ul>
+    <p>Comme pour le comparateur à AOP, cette hystérésis rend le montage insensible aux petites oscillations parasites de u<sub>e</sub> autour d'un seuil unique.</p>
+
+    <h3>Récapitulatif des Caractéristiques</h3>
+    <table class="theory-table">
+      <thead>
+        <tr><th>Paramètre</th><th>Expression / Valeur</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Composant</strong></td><td>Porte NAND CMOS à trigger de Schmitt intégré (CD4093)</td></tr>
+        <tr><td><strong>Montage</strong></td><td>Entrées reliées ⇒ inverseur à hystérésis</td></tr>
+        <tr><td><strong>Origine des seuils</strong></td><td>Internes au circuit (non réglables par composants externes)</td></tr>
+        <tr><td><strong>Seuil haut</strong></td><td>V<sub>T+</sub> ≈ 0,75 · V<sub>DD</sub></td></tr>
+        <tr><td><strong>Seuil bas</strong></td><td>V<sub>T-</sub> ≈ 0,5 · V<sub>DD</sub></td></tr>
+        <tr><td><strong>Largeur d'hystérésis</strong></td><td>V<sub>H</sub> = V<sub>T+</sub> - V<sub>T-</sub> ≈ 0,20 · V<sub>DD</sub></td></tr>
+        <tr><td><strong>Forme d'onde sortie</strong></td><td>Signal logique unipolaire entre 0 V et V<sub>DD</sub></td></tr>
+        <tr><td><strong>Caractéristique u<sub>s</sub> = f(u<sub>e</sub>)</strong></td><td>Cycle rectangulaire (hystérésis) décalé vers les tensions positives</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  // Eléments DOM
+  const pVdd = document.getElementById('param-vdd');
+  const pUe = document.getElementById('param-ue');
+  const pF = document.getElementById('param-f');
+
+  const vVdd = document.getElementById('val-vdd');
+  const vUe = document.getElementById('val-ue');
+  const vF = document.getElementById('val-f');
+  
+  const calcVl = document.getElementById('calc-vl');
+  const calcVh = document.getElementById('calc-vh');
+  const calcDv = document.getElementById('calc-dv');
+
+  const sensY1 = document.getElementById('sens-y1');
+  const sensY2 = document.getElementById('sens-y2');
+  const sensTime = document.getElementById('sens-time');
+
+  const btnToggle = document.getElementById('btn-toggle');
+
+  const timeCanvas = document.getElementById('timeCanvas');
+  const xyCanvas = document.getElementById('xyCanvas');
+  const ctxTime = timeCanvas.getContext('2d');
+  const ctxXY = xyCanvas.getContext('2d');
+
+  let timeOffset = 0;
+  let isRunning = true;
+
+  // Bascule l'affichage du résumé théorique complet
+  function toggleTheory() {
+    const card = document.getElementById('theoryCard');
+    const btn = document.getElementById('toggleTheoryBtn');
+    if (card.style.display === 'block') {
+      card.style.display = 'none';
+      btn.textContent = '📘 Afficher le résumé théorique';
+    } else {
+      card.style.display = 'block';
+      btn.textContent = '📘 Masquer le résumé théorique';
+    }
+  }
+
+  btnToggle.addEventListener('click', () => {
+    isRunning = !isRunning;
+    if (isRunning) {
+      btnToggle.textContent = '⏸ Pause Animation';
+      btnToggle.classList.remove('paused');
+    } else {
+      btnToggle.textContent = '▶ Reprendre Animation';
+      btnToggle.classList.add('paused');
+    }
+  });
+
+  function update() {
+    const Vdd = parseFloat(pVdd.value);
+    const Ue = parseFloat(pUe.value);
+    const freq = parseFloat(pF.value);
+
+    vVdd.textContent = Vdd + " V";
+    vUe.textContent = Ue + " V";
+    vF.textContent = freq + " Hz";
+
+    // Seuils typiques du CD4093 en fonction de VDD
+    const VtPlus = 0.75 * Vdd;
+    const VtMoins = 0.5 * Vdd;
+
+    calcVh.textContent = "+" + VtPlus.toFixed(2) + " V";
+    calcVl.textContent = "+" + VtMoins.toFixed(2) + " V";
+    calcDv.textContent = (VtPlus - VtMoins).toFixed(2) + " V";
+
+    // Sensibilités
+    const maxVoltage = Math.max(Ue, Vdd);
+    const vPerDiv = (maxVoltage / 4).toFixed(1);
+    const tPerDiv = ((2 / freq) / 8 * 1000).toFixed(1);
+
+    sensY1.textContent = vPerDiv + " V/div";
+    sensY2.textContent = vPerDiv + " V/div";
+    sensTime.textContent = tPerDiv + " ms/div";
+
+    drawTimeDomain(Ue, freq, Vdd, VtPlus, VtMoins);
+    drawXYDomain(Ue, Vdd, VtPlus, VtMoins);
+  }
+
+  function getTriangleWave(t, freq, amp) {
+    const T = 1 / freq;
+    const phase = (t % T) / T;
+    if (phase < 0.25) return amp * (phase * 4);
+    if (phase < 0.75) return amp * (1 - (phase - 0.25) * 4);
+    return amp * (-1 + (phase - 0.75) * 4);
+  }
+
+  function drawGrid(ctx, w, h, xLabel, yLabel) {
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = '#252a34';
+    ctx.lineWidth = 1;
+
+    const cols = 8;
+    const rows = 8;
+    for (let i = 0; i <= cols; i++) {
+      let x = (w / cols) * i;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (let j = 0; j <= rows; j++) {
+      let y = (h / rows) * j;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#4a5162';
+    ctx.lineWidth = 1.5;
+    // Repère décalé vers le bas car signal unipolaire en sortie (0 à VDD)
+    const yZero = h * 0.85;
+    ctx.beginPath(); ctx.moveTo(0, yZero); ctx.lineTo(w, yZero); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w/8, 0); ctx.lineTo(w/8, h); ctx.stroke();
+
+    ctx.fillStyle = '#93918a';
+    ctx.font = '10px monospace';
+    ctx.fillText(xLabel, w - 20, yZero - 5);
+    ctx.fillText(yLabel, w/8 + 5, 12);
+  }
+
+  function drawTimeDomain(Ue, freq, Vdd, VtPlus, VtMoins) {
+    const w = timeCanvas.width;
+    const h = timeCanvas.height;
+    drawGrid(ctxTime, w, h, "t", "u (V)");
+
+    const maxVal = Math.max(Ue, Vdd) * 1.15;
+    const yZero = h * 0.85;
+    const scaleY = (h * 0.75) / maxVal;
+    
+    const numPeriods = 2;
+    const totalTime = numPeriods / freq;
+
+    // Lignes de seuil Vt+ et Vt-
+    ctxTime.setLineDash([4, 4]);
+    ctxTime.strokeStyle = '#555';
+    ctxTime.lineWidth = 1;
+    
+    let yVtP = yZero - VtPlus * scaleY;
+    ctxTime.beginPath(); ctxTime.moveTo(0, yVtP); ctxTime.lineTo(w, yVtP); ctxTime.stroke();
+    ctxTime.fillStyle = '#888';
+    ctxTime.fillText("VT+", 5, yVtP - 3);
+
+    let yVtM = yZero - VtMoins * scaleY;
+    ctxTime.beginPath(); ctxTime.moveTo(0, yVtM); ctxTime.lineTo(w, yVtM); ctxTime.stroke();
+    ctxTime.fillText("VT-", 5, yVtM + 10);
+    ctxTime.setLineDash([]);
+
+    let currentUs = Vdd;
+    ctxTime.lineWidth = 2;
+
+    // Signal ue(t)
+    ctxTime.strokeStyle = '#E2B93B';
+    ctxTime.beginPath();
+    for (let x = 0; x < w; x++) {
+      let t = timeOffset + (x / w) * totalTime;
+      let ue = getTriangleWave(t, freq, Ue);
+      let y = yZero - ue * scaleY;
+      if (x === 0) ctxTime.moveTo(x, y);
+      else ctxTime.lineTo(x, y);
+    }
+    ctxTime.stroke();
+
+    // Signal us(t)
+    ctxTime.strokeStyle = '#7C9EF0';
+    ctxTime.beginPath();
+    for (let x = 0; x < w; x++) {
+      let t = timeOffset + (x / w) * totalTime;
+      let ue = getTriangleWave(t, freq, Ue);
+      
+      if (currentUs === Vdd && ue >= VtPlus) {
+        currentUs = 0;
+      } else if (currentUs === 0 && ue <= VtMoins) {
+        currentUs = Vdd;
+      }
+
+      let y = yZero - currentUs * scaleY;
+      if (x === 0) ctxTime.moveTo(x, y);
+      else ctxTime.lineTo(x, y);
+    }
+    ctxTime.stroke();
+  }
+
+  function drawXYDomain(Ue, Vdd, VtPlus, VtMoins) {
+    const w = xyCanvas.width;
+    const h = xyCanvas.height;
+    
+    ctxXY.clearRect(0, 0, w, h);
+    ctxXY.strokeStyle = '#252a34';
+    ctxXY.lineWidth = 1;
+    for (let i = 0; i <= 8; i++) {
+      let x = (w / 8) * i; ctxXY.beginPath(); ctxXY.moveTo(x, 0); ctxXY.lineTo(x, h); ctxXY.stroke();
+      let y = (h / 8) * i; ctxXY.beginPath(); ctxXY.moveTo(0, y); ctxXY.lineTo(w, y); ctxXY.stroke();
+    }
+
+    const yZero = h * 0.85;
+    const xZero = w * 0.15;
+    ctxXY.strokeStyle = '#4a5162';
+    ctxXY.lineWidth = 1.5;
+    ctxXY.beginPath(); ctxXY.moveTo(0, yZero); ctxXY.lineTo(w, yZero); ctxXY.stroke();
+    ctxXY.beginPath(); ctxXY.moveTo(xZero, 0); ctxXY.lineTo(xZero, h); ctxXY.stroke();
+
+    const maxVal = Math.max(Ue, Vdd) * 1.15;
+    const scaleX = (w * 0.75) / maxVal;
+    const scaleY = (h * 0.75) / maxVal;
+
+    const xVtP = xZero + VtPlus * scaleX;
+    const xVtM = xZero + VtMoins * scaleX;
+    const yVdd = yZero - Vdd * scaleY;
+
+    if (Ue < VtPlus) {
+      ctxXY.fillStyle = '#e74c3c';
+      ctxXY.font = '12px sans-serif';
+      ctxXY.fillText("Ue insuffisante pour basculer", 20, 30);
+      return;
+    }
+
+    ctxXY.strokeStyle = '#7C9EF0';
+    ctxXY.lineWidth = 2.5;
+
+    ctxXY.beginPath();
+    ctxXY.moveTo(xZero, yVdd);
+    ctxXY.lineTo(xVtP, yVdd);
+    ctxXY.lineTo(xVtP, yZero);
+    ctxXY.lineTo(xZero + Ue * scaleX, yZero);
+    ctxXY.lineTo(xVtM, yZero);
+    ctxXY.lineTo(xVtM, yVdd);
+    ctxXY.lineTo(xZero, yVdd);
+    ctxXY.stroke();
+
+    drawArrow(ctxXY, (xVtM + xVtP)/2, yVdd, 10, 0);
+    drawArrow(ctxXY, (xVtM + xVtP)/2, yZero, -10, 0);
+
+    ctxXY.fillStyle = '#eae8e1';
+    ctxXY.font = '10px monospace';
+    ctxXY.fillText("VT+", xVtP - 10, yZero + 14);
+    ctxXY.fillText("VT-", xVtM - 10, yZero + 14);
+  }
+
+  function drawArrow(ctx, x, y, dx, dy) {
+    ctx.save();
+    ctx.fillStyle = '#7C9EF0';
+    ctx.beginPath();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-8, -4);
+    ctx.lineTo(-8, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function animate() {
+    if (isRunning) {
+      timeOffset += 0.0001 * (parseFloat(pF.value) / 50);
+    }
+    update();
+    requestAnimationFrame(animate);
+  }
+
+  [pVdd, pUe, pF].forEach(input => {
+    input.addEventListener('input', update);
+  });
+
+  animate();
+</script>
+</body>
+</html>

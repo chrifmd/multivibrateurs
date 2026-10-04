@@ -1,0 +1,195 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multivibrateurs astables Accueil</title>
+<style>
+  :root {
+    --bg: #12151a;
+    --card: #1b1f26;
+    --border: #2a2f38;
+    --text: #eae8e1;
+    --text-secondary: #93918a;
+    --accent-vout: #F2A623;
+    --accent-vc: #4FD1AE;
+    --comp-opamp: #7C9EF0;
+    --comp-r: #F2A623;
+    --comp-c: #4FD1AE;
+    --accent-comp: #C77DFF;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2.5rem 1rem 4rem;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 2.5rem; }
+  h1 { font-size: 26px; font-weight: 700; margin: 0 0 8px; }
+  p.sub { color: var(--text-secondary); margin: 0; font-size: 15px; }
+
+  /* Cartes */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  @media (min-width: 720px) {
+    .grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  }
+
+  a.card-link { text-decoration: none; color: inherit; display: block; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    height: 100%;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  a.card-link:hover .card {
+    border-color: var(--accent-color, var(--comp-opamp));
+    transform: translateY(-3px);
+  }
+
+  .icon-badge {
+    width: 46px;
+    height: 46px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  .card h2 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+    color: var(--text);
+  }
+  .card p {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    margin: 0 0 1rem;
+  }
+  .card .tag {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  /* Couleurs distinctes par carte */
+  .card-aop .icon-badge { background: rgba(124, 158, 240, 0.16); color: var(--comp-opamp); }
+  .card-aop .tag { color: var(--comp-opamp); border-color: var(--comp-opamp); }
+
+  .card-4011 .icon-badge { background: rgba(242, 166, 35, 0.16); color: var(--accent-vout); }
+  .card-4011 .tag { color: var(--accent-vout); border-color: var(--accent-vout); }
+
+  .card-4093 .icon-badge { background: rgba(79, 209, 174, 0.16); color: var(--comp-c); }
+  .card-4093 .tag { color: var(--comp-c); border-color: var(--comp-c); }
+
+  .card-comp .icon-badge { background: rgba(199, 125, 255, 0.16); color: var(--accent-comp); }
+  .card-comp .tag { color: var(--accent-comp); border-color: var(--accent-comp); }
+
+  a.card-link[data-accent="aop"]:hover .card { border-color: var(--comp-opamp); }
+  a.card-link[data-accent="4011"]:hover .card { border-color: var(--accent-vout); }
+  a.card-link[data-accent="4093"]:hover .card { border-color: var(--comp-c); }
+  a.card-link[data-accent="comp"]:hover .card { border-color: var(--accent-comp); }
+
+  footer {
+    text-align: center;
+    margin-top: 3rem;
+    color: var(--text-secondary);
+    font-size: 12.5px;
+  }
+
+  .btn-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: var(--text-secondary);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.45rem 0.9rem;
+    margin-bottom: 1.25rem;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-home:hover {
+    border-color: var(--comp-opamp);
+    color: var(--comp-opamp);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="btn-home" href="https://simphysique.blogspot.com/">← Retour au site SimPhysique</a>
+
+  <header>
+    <h1>Multivibrateurs astables</h1>
+    <p class="sub">Choisissez un type de montage pour explorer son fonctionnement, son schéma et son oscilloscope simulé</p>
+  </header>
+
+  <!-- Cartes de navigation -->
+  <div class="grid">
+
+    <a class="card-link" data-accent="comp" href="comparateur_aop.html">
+      <div class="card card-comp">
+        <div class="icon-badge">CMP</div>
+        <h2>Les comparateurs</h2>
+        <p>Trigger de Schmitt à hystérésis attaqué par un signal triangulaire, à AOP ou à porte CMOS CD4093.</p>
+        <span class="tag">Comparateur à hystérésis</span>
+      </div>
+    </a>
+
+    <a class="card-link" data-accent="aop" href="multivibrateur_astable_Aop.html">
+      <div class="card card-aop">
+        <div class="icon-badge">AOP</div>
+        <h2>Multivibrateur à AOP</h2>
+        <p>Oscillateur bâti autour d'un amplificateur opérationnel monté en comparateur, avec réseau RC de temporisation.</p>
+        <span class="tag">Amplificateur opérationnel</span>
+      </div>
+    </a>
+
+    <a class="card-link" data-accent="4093" href="multivibrateur_astable_cmos_4093.html">
+      <div class="card card-4093">
+        <div class="icon-badge">4093</div>
+        <h2>Multivibrateur CD4093</h2>
+        <p>Astable basé sur une porte NAND à trigger de Schmitt CD4093, exploitant les seuils de basculement.</p>
+        <span class="tag">Trigger de Schmitt</span>
+      </div>
+    </a>
+
+    <a class="card-link" data-accent="4011" href="multivibrateur_astable_cd4011.html">
+      <div class="card card-4011">
+        <div class="icon-badge">4011</div>
+        <h2>Multivibrateur CD4011</h2>
+        <p>Montage astable réalisé avec des portes NAND CMOS CD4011, oscilloscope ajusté pour visualiser les signaux.</p>
+        <span class="tag">Porte NAND CMOS</span>
+      </div>
+    </a>
+
+  </div>
+
+  <footer>Cliquez sur une carte pour naviguer vers le montage souhaité.</footer>
+
+</div>
+</body>
+</html>
